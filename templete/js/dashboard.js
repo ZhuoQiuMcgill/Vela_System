@@ -183,14 +183,22 @@ async function loadRecentTransactions() {
                 const amountClass = transaction.transaction_type === 'income' ? 'amount-positive' : 'amount-negative';
                 const typeClass = transaction.transaction_type === 'income' ? 'transaction-type-income' : 'transaction-type-expense';
                 
+                // Add transaction mode indicator
+                let modeIndicator = '';
+                if (transaction.transaction_mode === 'recurring') {
+                    modeIndicator = '<i class="fas fa-sync-alt text-primary ml-1" title="Recurring Income"></i>';
+                } else if (transaction.transaction_mode === 'continuous') {
+                    modeIndicator = '<i class="fas fa-hourglass-half text-info ml-1" title="Installment Plan"></i>';
+                }
+
                 row.innerHTML = `
                     <td>${utils.formatDate(transaction.start_date)}</td>
-                    <td>${transaction.description}</td>
+                    <td>${transaction.description} ${modeIndicator}</td>
                     <td>${transaction.category_name || 'Uncategorized'}</td>
                     <td><span class="transaction-type ${typeClass}">${transaction.transaction_type}</span></td>
                     <td class="text-right"><span class="amount ${amountClass}">${utils.formatCurrency(transaction.amount)}</span></td>
                 `;
-                
+
                 tableBody.appendChild(row);
             });
         }
@@ -206,10 +214,18 @@ async function loadRecentTransactions() {
 async function loadTodayDayCapacity() {
     try {
         const result = await api.reports.getDayCapacity();
-        
+
         const dayCapacityElement = document.getElementById('day-capacity');
         if (dayCapacityElement) {
             dayCapacityElement.textContent = utils.formatCurrency(result.day_capacity);
+
+            // Add color class based on value
+            dayCapacityElement.className = 'stat-card-value';
+            if (result.day_capacity > 0) {
+                dayCapacityElement.classList.add('text-success');
+            } else if (result.day_capacity < 0) {
+                dayCapacityElement.classList.add('text-danger');
+            }
         }
     } catch (error) {
         console.error('Error loading day capacity:', error);
@@ -229,17 +245,18 @@ async function loadMonthlyNetChange() {
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        
+
         const result = await api.reports.getSummary(
             firstDay.toISOString().split('T')[0],
             lastDay.toISOString().split('T')[0]
         );
-        
+
         const monthlyNetElement = document.getElementById('monthly-net');
         if (monthlyNetElement) {
             monthlyNetElement.textContent = utils.formatCurrency(result.net_change);
-            
+
             // Add color class based on value
+            monthlyNetElement.className = 'stat-card-value';
             if (result.net_change > 0) {
                 monthlyNetElement.classList.add('text-success');
             } else if (result.net_change < 0) {
@@ -264,27 +281,27 @@ async function loadDayCapacityTrend(days = 30) {
         const today = new Date();
         const startDate = new Date();
         startDate.setDate(today.getDate() - days);
-        
+
         const result = await api.reports.getSummary(
             startDate.toISOString().split('T')[0],
             today.toISOString().split('T')[0]
         );
-        
+
         const trendData = result.day_capacity_trend || [];
-        
+
         // Prepare chart data
         const labels = [];
         const capacityData = [];
-        
+
         trendData.forEach(day => {
             labels.push(utils.formatDate(day.date));
             capacityData.push(day.day_capacity);
         });
-        
+
         // Get chart canvas
         const chartCanvas = document.getElementById('day-capacity-chart');
         if (!chartCanvas) return;
-        
+
         // Use the chart loader to ensure Chart.js is available
         await window.chartReadyPromise;
 
@@ -568,36 +585,14 @@ function setupTransactionListeners() {
     const modalTitle = document.getElementById('transaction-modal-title');
     const modalForm = document.getElementById('transaction-form');
     const typeInput = document.getElementById('transaction-type');
-    const isRecurringCheck = document.getElementById('is-recurring');
-    const recurringOptions = document.getElementById('recurring-options');
-    const hasDurationCheck = document.getElementById('has-duration');
-    const durationOptions = document.getElementById('duration-options');
     const saveButton = document.getElementById('save-transaction-btn');
     const closeButtons = document.querySelectorAll('[data-dismiss="modal"]');
 
-    // Toggle recurring options
-    if (isRecurringCheck) {
-        isRecurringCheck.addEventListener('change', () => {
-            recurringOptions.style.display = isRecurringCheck.checked ? 'block' : 'none';
-
-            // Recurring income and continuous expense are mutually exclusive
-            if (isRecurringCheck.checked) {
-                hasDurationCheck.checked = false;
-                durationOptions.style.display = 'none';
-            }
-        });
-    }
-
-    // Toggle duration options
-    if (hasDurationCheck) {
-        hasDurationCheck.addEventListener('change', () => {
-            durationOptions.style.display = hasDurationCheck.checked ? 'block' : 'none';
-
-            // Recurring income and continuous expense are mutually exclusive
-            if (hasDurationCheck.checked) {
-                isRecurringCheck.checked = false;
-                recurringOptions.style.display = 'none';
-            }
+    // Transaction mode radio buttons
+    const transactionModeRadios = document.querySelectorAll('input[name="transaction_mode"]');
+    if (transactionModeRadios.length > 0) {
+        transactionModeRadios.forEach(radio => {
+            radio.addEventListener('change', updateTransactionModeOptions);
         });
     }
 
@@ -622,6 +617,72 @@ function setupTransactionListeners() {
 }
 
 /**
+ * Update form fields based on selected transaction mode
+ */
+function updateTransactionModeOptions() {
+    const selectedMode = document.querySelector('input[name="transaction_mode"]:checked').value;
+    const recurringOptions = document.getElementById('recurring-options');
+    const durationOptions = document.getElementById('duration-options');
+    const transactionType = document.getElementById('transaction-type').value;
+    const transactionModeHelp = document.getElementById('transaction-mode-help');
+
+    // Set the help text to show by default
+    if (transactionModeHelp) {
+        transactionModeHelp.style.display = 'block';
+    }
+
+    // Hide all options first
+    if (recurringOptions) recurringOptions.style.display = 'none';
+    if (durationOptions) durationOptions.style.display = 'none';
+
+    // Show relevant options based on mode and type
+    if (selectedMode === 'recurring') {
+        if (transactionType !== 'income') {
+            // If not income, switch to single mode
+            document.querySelector('input[value="single"]').checked = true;
+            if (transactionModeHelp) {
+                transactionModeHelp.textContent = 'Recurring mode is only available for income transactions';
+                transactionModeHelp.className = 'alert alert-warning mb-3';
+            }
+            return updateTransactionModeOptions(); // Re-run with new selection
+        }
+
+        if (recurringOptions) recurringOptions.style.display = 'block';
+        if (transactionModeHelp) {
+            transactionModeHelp.textContent = 'Recurring income contributes to your daily budget (amount ÷ cycle days).';
+            transactionModeHelp.className = 'alert alert-info mb-3';
+        }
+    }
+    else if (selectedMode === 'continuous') {
+        if (transactionType !== 'expense') {
+            // If not expense, switch to single mode
+            document.querySelector('input[value="single"]').checked = true;
+            if (transactionModeHelp) {
+                transactionModeHelp.textContent = 'Installment plan is only available for expense transactions';
+                transactionModeHelp.className = 'alert alert-warning mb-3';
+            }
+            return updateTransactionModeOptions(); // Re-run with new selection
+        }
+
+        if (durationOptions) durationOptions.style.display = 'block';
+        if (transactionModeHelp) {
+            transactionModeHelp.textContent = 'This expense will be spread over the specified duration, reducing your daily budget by (amount ÷ duration days).';
+            transactionModeHelp.className = 'alert alert-info mb-3';
+        }
+    } else {
+        // Single transaction
+        if (transactionModeHelp) {
+            if (transactionType === 'income') {
+                transactionModeHelp.textContent = 'This income will immediately increase your balance.';
+            } else {
+                transactionModeHelp.textContent = 'This expense will immediately decrease your balance.';
+            }
+            transactionModeHelp.className = 'alert alert-info mb-3';
+        }
+    }
+}
+
+/**
  * Open transaction modal
  */
 function openTransactionModal(type) {
@@ -633,10 +694,13 @@ function openTransactionModal(type) {
     const descriptionInput = document.getElementById('description');
     const categorySelect = document.getElementById('category');
     const startDateInput = document.getElementById('start-date');
+    const incomeModeOption = document.getElementById('income-mode-option');
+    const expenseModeOption = document.getElementById('expense-mode-option');
     const isRecurringCheck = document.getElementById('is-recurring');
     const recurringOptions = document.getElementById('recurring-options');
     const hasDurationCheck = document.getElementById('has-duration');
     const durationOptions = document.getElementById('duration-options');
+    const transactionModeHelp = document.getElementById('transaction-mode-help');
 
     // Reset form
     form.reset();
@@ -648,29 +712,25 @@ function openTransactionModal(type) {
     // Set today's date
     startDateInput.value = utils.getCurrentDateString();
 
-    // Hide recurring and duration options
-    recurringOptions.style.display = 'none';
-    durationOptions.style.display = 'none';
-
-    // Show the appropriate checkboxes based on type
-    if (type === 'income') {
-        isRecurringCheck.parentNode.style.display = 'block'; // Show recurring option for income
-        hasDurationCheck.parentNode.style.display = 'none'; // Hide duration option for income
-    } else {
-        isRecurringCheck.parentNode.style.display = 'none'; // Hide recurring option for expense
-        hasDurationCheck.parentNode.style.display = 'block'; // Show duration option for expense
+    // Show/hide appropriate transaction modes based on type
+    if (incomeModeOption && expenseModeOption) {
+        if (type === 'income') {
+            incomeModeOption.style.display = 'block';
+            expenseModeOption.style.display = 'none';
+        } else {
+            incomeModeOption.style.display = 'none';
+            expenseModeOption.style.display = 'block';
+        }
     }
 
-    // Filter categories based on type
-    if (categorySelect) {
-        utils.populateSelect(
-            categorySelect,
-            categoriesData,
-            'id',
-            'name',
-            { value: '', text: 'Select a category', disabled: true, selected: true }
-        );
+    // Default to single transaction mode
+    const singleModeRadio = document.querySelector('input[name="transaction_mode"][value="single"]');
+    if (singleModeRadio) {
+        singleModeRadio.checked = true;
     }
+
+    // Update transaction mode options visibility
+    updateTransactionModeOptions();
 
     // Show modal
     modal.style.display = 'block';
@@ -680,16 +740,6 @@ function openTransactionModal(type) {
 
     // Focus amount input
     amountInput.focus();
-}
-
-/**
- * Close modal
- */
-function closeModal(modal) {
-    modal.classList.remove('show');
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 300);
 }
 
 /**
@@ -707,17 +757,26 @@ async function saveTransaction() {
     // Get form data
     const formData = utils.serializeForm(form);
 
+    // Get selected transaction mode
+    const transactionMode = document.querySelector('input[name="transaction_mode"]:checked').value;
+
     // Prepare transaction data
     const transactionData = {
         amount: parseFloat(formData.amount),
         description: formData.description,
         category_id: formData.category_id || null,
         transaction_type: formData.transaction_type,
-        start_date: formData.start_date,
-        is_recurring: formData.is_recurring === 'on',
-        cycle_days: formData.is_recurring === 'on' ? parseInt(formData.cycle_days) : null,
-        duration_days: formData.has_duration === 'on' ? parseInt(formData.duration_days) : null
+        transaction_mode: transactionMode,
+        start_date: formData.start_date
     };
+
+    // Add mode-specific fields
+    if (transactionMode === 'recurring') {
+        transactionData.cycle_days = parseInt(formData.cycle_days);
+        transactionData.is_recurring = true;
+    } else if (transactionMode === 'continuous') {
+        transactionData.duration_days = parseInt(formData.duration_days);
+    }
 
     try {
         // Show loading state
@@ -747,4 +806,14 @@ async function saveTransaction() {
         saveButton.disabled = false;
         saveButton.textContent = originalText;
     }
+}
+
+/**
+ * Close modal
+ */
+function closeModal(modal) {
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
 }

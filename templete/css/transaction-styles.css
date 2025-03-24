@@ -14,6 +14,7 @@
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
     transition: background-color 0.2s, border-color 0.2s;
+    cursor: pointer;
 }
 
 .transaction-mode-options .form-check:hover {
@@ -38,7 +39,7 @@
     background-color: rgba(40, 167, 69, 0.1);
 }
 
-/* Expense option */
+/* Expense option with installment plan */
 #expense-mode-option.form-check {
     border-left: 3px solid var(--color-info);
 }
@@ -65,6 +66,12 @@
     background-color: var(--bg-secondary);
     border-radius: var(--radius-md);
     margin-top: 10px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Transaction Details Modal styles */
@@ -86,70 +93,28 @@
     position: relative;
 }
 
-.table tr[data-mode="recurring"] td:first-child:before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background-color: var(--color-success);
-}
-
-.table tr[data-mode="continuous"] td:first-child:before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background-color: var(--color-info);
-}
-
-/* Alert styles for transaction mode help */
-#transaction-mode-help {
-    font-size: 0.9rem;
-    padding: 10px 15px;
-}
-
-/* Adjustment to form elements spacing */
-.form-group {
-    margin-bottom: 1.25rem;
-}
-
-.form-check {
-    margin-bottom: 0.5rem;
-}
-
-.form-text {
-    margin-top: 0.25rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-/* Icon styling for transaction mode indicators */
 .transaction-mode-icon {
     margin-right: 0.5rem;
     width: 16px;
     text-align: center;
 }
 
-/* Enhance the visibility of the mode options */
-.form-check-input {
-    margin-top: 0.25rem;
+/* Alert styles for transaction mode help */
+#transaction-mode-help {
+    font-size: 0.9rem;
+    padding: 10px 15px;
+    border-left-width: 4px;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
-.form-check-label {
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-}
-
-/* Labels for day capacity impact */
+/* Day capacity impact labels */
 .day-capacity-impact {
     font-weight: 600;
     padding: 3px 6px;
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
+    margin-top: 5px;
+    display: inline-block;
 }
 
 .day-capacity-impact.positive {
@@ -165,4 +130,88 @@
 .day-capacity-impact.neutral {
     background-color: rgba(108, 117, 125, 0.1);
     color: var(--text-secondary);
+}
+
+/* Transaction mode indicator in tables */
+.mode-indicator {
+    font-size: 0.75rem;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.mode-indicator.recurring {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: var(--color-success);
+}
+
+.mode-indicator.continuous {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: var(--color-info);
+}
+
+/* Duration visualization */
+.duration-meter {
+    margin-top: 10px;
+    height: 8px;
+    background-color: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.duration-progress {
+    height: 100%;
+    background-color: var(--color-info);
+    width: 0;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.duration-meter .start-marker,
+.duration-meter .end-marker {
+    position: absolute;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.duration-meter .start-marker {
+    left: 0;
+    top: 10px;
+}
+
+.duration-meter .end-marker {
+    right: 0;
+    top: 10px;
+}
+
+/* Enhanced input fields for day counts */
+input[type="number"]#cycle-days,
+input[type="number"]#duration-days {
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Predefined duration buttons */
+.duration-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.duration-preset-btn {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.duration-preset-btn:hover {
+    background-color: var(--color-primary);
+    color: white;
 }

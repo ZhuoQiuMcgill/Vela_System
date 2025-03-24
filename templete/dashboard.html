@@ -59,7 +59,7 @@
             </div>
         </header>
 
-        <!-- Content wrapper -->
+        <!-- Content wrapper with improved sidebar navigation -->
         <div class="content-wrapper">
             <!-- Sidebar -->
             <aside class="sidebar">
@@ -114,7 +114,7 @@
                 </div>
             </aside>
 
-            <!-- Main content -->
+            <!-- Main content with financial statistics and transaction management -->
             <main class="main-content">
                 <div class="container">
                     <h1>Dashboard</h1>
@@ -299,7 +299,7 @@
         </footer>
     </div>
 
-    <!-- Add Transaction Modal -->
+    <!-- Add Transaction Modal with Enhanced Transaction Mode Options -->
     <div class="modal" id="transaction-modal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -344,7 +344,7 @@
                             <div class="invalid-feedback"></div>
                         </div>
 
-                        <!-- Transaction Mode Selection -->
+                        <!-- Transaction Mode Selection - Enhanced with Better UX -->
                         <div class="form-group">
                             <label class="form-label">Transaction Mode</label>
                             <div class="transaction-mode-options">
@@ -377,6 +377,14 @@
                             <label for="cycle-days" class="form-label">Cycle Period (days)</label>
                             <input type="number" id="cycle-days" name="cycle_days" class="form-control" value="30" min="1">
                             <small class="form-text">E.g., 30 for monthly salary. This will provide a daily budget allocation of amount/cycle_days.</small>
+
+                            <!-- Quick selection buttons for common cycles -->
+                            <div class="duration-presets">
+                                <button type="button" class="duration-preset-btn" data-days="7">Weekly (7)</button>
+                                <button type="button" class="duration-preset-btn" data-days="14">Bi-weekly (14)</button>
+                                <button type="button" class="duration-preset-btn" data-days="30">Monthly (30)</button>
+                                <button type="button" class="duration-preset-btn" data-days="365">Yearly (365)</button>
+                            </div>
                         </div>
 
                         <!-- Options for Continuous Expense / Installment Plan -->
@@ -384,6 +392,22 @@
                             <label for="duration-days" class="form-label">Duration (days)</label>
                             <input type="number" id="duration-days" name="duration_days" class="form-control" value="30" min="1">
                             <small class="form-text">Number of days over which to spread this expense. This will reduce your daily budget by amount/duration_days during this period.</small>
+
+                            <!-- Quick selection buttons for common durations -->
+                            <div class="duration-presets">
+                                <button type="button" class="duration-preset-btn" data-days="30">1 Month (30)</button>
+                                <button type="button" class="duration-preset-btn" data-days="90">3 Months (90)</button>
+                                <button type="button" class="duration-preset-btn" data-days="180">6 Months (180)</button>
+                                <button type="button" class="duration-preset-btn" data-days="365">1 Year (365)</button>
+                                <button type="button" class="duration-preset-btn" data-days="730">2 Years (730)</button>
+                            </div>
+
+                            <!-- Visual duration indicator -->
+                            <div class="duration-meter mt-3">
+                                <div class="duration-progress"></div>
+                                <span class="start-marker">Today</span>
+                                <span class="end-marker" id="end-date-display"></span>
+                            </div>
                         </div>
                     </form>
                 </div>
