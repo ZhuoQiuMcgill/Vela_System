@@ -319,7 +319,7 @@ async function loadOverviewReport(startDate, endDate) {
         // Create or update day capacity chart
         createDayCapacityChart(summaryData.day_capacity_trend || []);
         
-        // Create summary table
+        // Create summary table with actual data
         createSummaryTable(summaryData);
         
         // Hide loading state
@@ -475,101 +475,160 @@ async function loadDayCapacityReport(startDate, endDate) {
 /**
  * Create income vs expense chart
  */
-function createIncomeExpenseChart(data) {
+/**
+ * Updated income vs expense chart creation that uses real data instead of random values
+ */
+async function createIncomeExpenseChart(data) {
     // Check if we have the necessary data
     if (!data || !data.day_capacity_trend || data.day_capacity_trend.length === 0) {
         return;
     }
-    
+
     const chartCanvas = document.getElementById('income-expense-chart');
     if (!chartCanvas) return;
-    
+
     // Get chart type
     const chartTypeSelect = document.getElementById('income-expense-chart-type');
     const chartType = chartTypeSelect ? chartTypeSelect.value : 'bar';
-    
-    // Group data by month
-    const monthlyData = {};
-    
-    data.day_capacity_trend.forEach(day => {
-        const date = new Date(day.date);
-        const monthYear = `${date.getFullYear()}-${date.getMonth() + 1}`;
-        
-        if (!monthlyData[monthYear]) {
-            monthlyData[monthYear] = {
-                label: new Date(date.getFullYear(), date.getMonth(), 1).toLocaleDateString('default', { month: 'short', year: 'numeric' }),
-                income: 0,
-                expense: 0
-            };
+
+    try {
+        // Show a loading indicator on the chart
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'chart-loading';
+        loadingIndicator.innerHTML = `
+            <div class="loading"></div>
+            <p>Loading transaction data...</p>
+        `;
+        chartCanvas.parentNode.appendChild(loadingIndicator);
+
+        // Get the date range
+        const startDateInput = document.getElementById('report-start-date');
+        const endDateInput = document.getElementById('report-end-date');
+
+        if (!startDateInput || !endDateInput) {
+            console.error('Date inputs not found');
+            return;
         }
-        
-        // Add income and expense (placeholder - would come from API)
-        // This is just a simulation since the API doesn't provide this specific data
-        monthlyData[monthYear].income += Math.random() * 1000; // Random income
-        monthlyData[monthYear].expense += Math.random() * 800; // Random expense
-    });
-    
-    // Convert to arrays for chart
-    const labels = [];
-    const incomeData = [];
-    const expenseData = [];
-    
-    Object.values(monthlyData).forEach(month => {
-        labels.push(month.label);
-        incomeData.push(month.income.toFixed(2));
-        expenseData.push(month.expense.toFixed(2));
-    });
-    
-    // Create or update chart
-    if (incomeExpenseChart) {
-        incomeExpenseChart.data.labels = labels;
-        incomeExpenseChart.data.datasets[0].data = incomeData;
-        incomeExpenseChart.data.datasets[1].data = expenseData;
-        incomeExpenseChart.config.type = chartType;
-        incomeExpenseChart.update();
-    } else {
-        // Create new chart
-        incomeExpenseChart = new Chart(chartCanvas, {
-            type: chartType,
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Income',
-                        data: incomeData,
-                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
-                        borderColor: 'rgba(40, 167, 69, 1)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Expenses',
-                        data: expenseData,
-                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
-                        borderColor: 'rgba(220, 53, 69, 1)',
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: utils.createChartOptions(chartType, {
-                plugins: {
-                    title: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
+
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        // Fetch the transaction data for the period
+        const result = await api.transactions.getAll({
+            start: startDate,
+            end: endDate
+        });
+
+        const transactions = result.transactions || [];
+
+        // Group data by month
+        const monthlyData = {};
+
+        // Process day capacity trend data to set up the month structure
+        data.day_capacity_trend.forEach(day => {
+            const date = new Date(day.date);
+            const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+            if (!monthlyData[monthYear]) {
+                monthlyData[monthYear] = {
+                    label: new Date(date.getFullYear(), date.getMonth(), 1).toLocaleDateString('default', { month: 'short', year: 'numeric' }),
+                    income: 0,
+                    expense: 0
+                };
+            }
+        });
+
+        // Process transaction data
+        transactions.forEach(transaction => {
+            // Extract month-year from date
+            const date = new Date(transaction.start_date);
+            const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+            // Skip if the month is not in our dataset (should not happen, but just to be safe)
+            if (!monthlyData[monthYear]) return;
+
+            // Only process single transactions for this chart
+            // Recurring and continuous transactions are handled through day capacity
+            if (transaction.transaction_mode === 'single') {
+                if (transaction.transaction_type === 'income') {
+                    monthlyData[monthYear].income += transaction.amount;
+                } else if (transaction.transaction_type === 'expense') {
+                    monthlyData[monthYear].expense += transaction.amount;
+                }
+            }
+        });
+
+        // Remove loading indicator
+        if (loadingIndicator && loadingIndicator.parentNode) {
+            loadingIndicator.parentNode.removeChild(loadingIndicator);
+        }
+
+        // Convert to arrays for chart
+        const months = Object.keys(monthlyData).sort(); // Sort by month
+        const labels = months.map(month => monthlyData[month].label);
+        const incomeData = months.map(month => monthlyData[month].income.toFixed(2));
+        const expenseData = months.map(month => monthlyData[month].expense.toFixed(2));
+
+        // Create or update chart
+        if (incomeExpenseChart) {
+            incomeExpenseChart.data.labels = labels;
+            incomeExpenseChart.data.datasets[0].data = incomeData;
+            incomeExpenseChart.data.datasets[1].data = expenseData;
+            incomeExpenseChart.config.type = chartType;
+            incomeExpenseChart.update();
+        } else {
+            // Create new chart
+            incomeExpenseChart = new Chart(chartCanvas, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: incomeData,
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Expenses',
+                            data: expenseData,
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: utils.createChartOptions(chartType, {
+                    plugins: {
+                        title: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += utils.formatCurrency(context.parsed.y || context.parsed);
+                                    return label;
                                 }
-                                label += utils.formatCurrency(context.parsed.y || context.parsed);
-                                return label;
                             }
                         }
                     }
-                }
-            })
-        });
+                })
+            });
+        }
+    } catch (error) {
+        console.error('Error creating income expense chart:', error);
+
+        // Show error message
+        chartCanvas.parentNode.innerHTML = `
+            <div class="text-center text-danger">
+                <p>Error loading chart data</p>
+            </div>
+        `;
     }
 }
 
@@ -896,24 +955,24 @@ function createExpenseCategoriesChart(categories) {
 function createSummaryTable(data) {
     const tableBody = document.getElementById('summary-table');
     if (!tableBody) return;
-    
+
     // Clear table
     tableBody.innerHTML = '';
-    
-    // Check if we have trend data
+
+    // Check if we have transaction data
     if (!data.day_capacity_trend || data.day_capacity_trend.length === 0) {
         return;
     }
-    
+
     // Group data by week
     const weeklyData = {};
-    
+
     data.day_capacity_trend.forEach(day => {
         const date = new Date(day.date);
         const weekStart = new Date(date);
         weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
         const weekKey = weekStart.toISOString().split('T')[0];
-        
+
         if (!weeklyData[weekKey]) {
             weeklyData[weekKey] = {
                 start: weekStart,
@@ -925,42 +984,26 @@ function createSummaryTable(data) {
             };
             weeklyData[weekKey].end.setDate(weekStart.getDate() + 6); // End of week (Saturday)
         }
-        
-        // Add day capacity (average)
+
+        // Add day capacity (to calculate average later)
         weeklyData[weekKey].dayCapacity += day.day_capacity;
         weeklyData[weekKey].count++;
-        
-        // Add random income and expense (placeholder - would come from API)
-        // This is just a simulation since the API doesn't provide this specific data
-        weeklyData[weekKey].income += Math.random() * 1000; // Random income
-        weeklyData[weekKey].expense += Math.random() * 800; // Random expense
     });
-    
-    // Sort weeks by date
-    const sortedWeeks = Object.values(weeklyData).sort((a, b) => b.start - a.start);
-    
-    // Add rows to table
-    sortedWeeks.forEach(week => {
-        const row = document.createElement('tr');
-        
-        // Calculate average day capacity
-        const avgDayCapacity = week.count > 0 ? week.dayCapacity / week.count : 0;
-        
-        // Calculate net
-        const net = week.income - week.expense;
-        const netClass = net >= 0 ? 'text-success' : 'text-danger';
-        
-        row.innerHTML = `
-            <td>${utils.formatDate(week.start)} - ${utils.formatDate(week.end)}</td>
-            <td class="text-right text-success">${utils.formatCurrency(week.income)}</td>
-            <td class="text-right text-danger">${utils.formatCurrency(week.expense)}</td>
-            <td class="text-right ${netClass}">${utils.formatCurrency(net)}</td>
-            <td class="text-right">${utils.formatCurrency(avgDayCapacity)}</td>
-        `;
-        
-        tableBody.appendChild(row);
-    });
+
+    // We need to fetch transaction data for the period to accurately show income and expenses
+    const startDateInput = document.getElementById('report-start-date');
+    const endDateInput = document.getElementById('report-end-date');
+
+    if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+
+        // This would typically be an async function, but for our implementation
+        // we'll update the table after we get the transaction data
+        fetchTransactionsAndUpdateTable(startDate, endDate, weeklyData, tableBody);
+    }
 }
+
 
 /**
  * Create categories table
@@ -1073,53 +1116,94 @@ function showActiveTransactions(date) {
 /**
  * Export summary report to CSV
  */
-function exportSummaryReport() {
-    if (!summaryData) {
-        utils.showNotification('No data to export', 'warning');
-        return;
+async function fetchTransactionsAndUpdateTable(startDate, endDate, weeklyData, tableBody) {
+    try {
+        // Show loading indicator
+        const loadingEl = document.createElement('tr');
+        loadingEl.innerHTML = `
+            <td colspan="5" class="text-center">
+                <div class="loading"></div>
+                <p class="mt-2">Loading transaction data...</p>
+            </td>
+        `;
+        tableBody.appendChild(loadingEl);
+
+        // Fetch transactions for the date range
+        const filters = { start: startDate, end: endDate };
+        const result = await api.transactions.getAll(filters);
+        const transactions = result.transactions || [];
+
+        // Remove loading indicator
+        tableBody.removeChild(loadingEl);
+
+        // Calculate income and expense totals by week
+        transactions.forEach(transaction => {
+            // Skip recurring/continuous transactions in this simple summary
+            // as they are handled differently in day capacity
+            if (transaction.transaction_mode !== 'single') return;
+
+            const transactionDate = new Date(transaction.start_date);
+            const weekStart = new Date(transactionDate);
+            weekStart.setDate(transactionDate.getDate() - transactionDate.getDay());
+            const weekKey = weekStart.toISOString().split('T')[0];
+
+            if (weeklyData[weekKey]) {
+                if (transaction.transaction_type === 'income') {
+                    weeklyData[weekKey].income += transaction.amount;
+                } else {
+                    weeklyData[weekKey].expense += transaction.amount;
+                }
+            }
+        });
+
+        // Sort weeks by date (newest first)
+        const sortedWeeks = Object.values(weeklyData).sort((a, b) => b.start - a.start);
+
+        // Add rows to table
+        sortedWeeks.forEach(week => {
+            const row = document.createElement('tr');
+
+            // Calculate average day capacity
+            const avgDayCapacity = week.count > 0 ? week.dayCapacity / week.count : 0;
+
+            // Calculate net
+            const net = week.income - week.expense;
+            const netClass = net >= 0 ? 'text-success' : 'text-danger';
+
+            row.innerHTML = `
+                <td>${utils.formatDate(week.start)} - ${utils.formatDate(week.end)}</td>
+                <td class="text-right text-success">${utils.formatCurrency(week.income)}</td>
+                <td class="text-right text-danger">${utils.formatCurrency(week.expense)}</td>
+                <td class="text-right ${netClass}">${utils.formatCurrency(net)}</td>
+                <td class="text-right">${utils.formatCurrency(avgDayCapacity)}</td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+
+        // If no data was found, show a message
+        if (sortedWeeks.length === 0) {
+            const noDataRow = document.createElement('tr');
+            noDataRow.innerHTML = `
+                <td colspan="5" class="text-center">
+                    <p class="text-muted">No transaction data available for the selected date range</p>
+                </td>
+            `;
+            tableBody.appendChild(noDataRow);
+        }
+
+    } catch (error) {
+        console.error('Error fetching transaction data:', error);
+
+        // Show error message in table
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-danger">
+                    <p>Error loading transaction data. Please try again.</p>
+                </td>
+            </tr>
+        `;
     }
-    
-    const tableBody = document.getElementById('summary-table');
-    if (!tableBody || !tableBody.rows.length) {
-        utils.showNotification('No data to export', 'warning');
-        return;
-    }
-    
-    // Create CSV content
-    let csvContent = 'Date Range,Income,Expenses,Net,Day Capacity\n';
-    
-    // Add each row to CSV
-    Array.from(tableBody.rows).forEach(row => {
-        const cells = Array.from(row.cells);
-        
-        // Extract cell contents
-        const dateRange = cells[0].textContent;
-        const income = cells[1].textContent.replace('$', '').trim();
-        const expenses = cells[2].textContent.replace('$', '').trim();
-        const net = cells[3].textContent.replace('$', '').trim();
-        const dayCapacity = cells[4].textContent.replace('$', '').trim();
-        
-        // Add row to CSV
-        csvContent += `"${dateRange}","${income}","${expenses}","${net}","${dayCapacity}"\n`;
-    });
-    
-    // Add summary data
-    csvContent += `\n"Total Income","${summaryData.total_income}"\n`;
-    csvContent += `"Total Expenses","${summaryData.total_expense}"\n`;
-    csvContent += `"Net Change","${summaryData.net_change}"\n`;
-    
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'vela_summary_report.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    utils.showNotification('Summary report exported successfully', 'success');
 }
 
 /**
