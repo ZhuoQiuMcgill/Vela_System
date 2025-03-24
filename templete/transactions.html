@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/transaction-styles.css">
 </head>
 <body>
     <div class="page-wrapper">
@@ -119,14 +118,6 @@
                 <div class="container">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h1>Transactions</h1>
-                        <div>
-                            <button id="add-income-btn" class="btn btn-success mr-2">
-                                <i class="fas fa-plus-circle"></i> Income
-                            </button>
-                            <button id="add-expense-btn" class="btn btn-danger">
-                                <i class="fas fa-minus-circle"></i> Expense
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Filters -->
@@ -182,9 +173,6 @@
                                     <option value="amount-desc">Amount (Highest)</option>
                                     <option value="amount-asc">Amount (Lowest)</option>
                                 </select>
-                                <button id="export-csv-btn" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-download mr-1"></i> Export
-                                </button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -198,7 +186,7 @@
                                             <th>Type</th>
                                             <th class="text-right">Amount</th>
                                             <th>Details</th>
-                                            <th>Actions</th>
+                                            <th class="text-right">Day Average Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody id="transactions-table">
@@ -219,13 +207,6 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div id="transactions-summary">
                                     Showing <span id="transactions-count">0</span> transactions
-                                </div>
-                                <div class="table-pagination">
-                                    <nav>
-                                        <ul class="pagination" id="pagination">
-                                            <!-- Pagination will be inserted here by JS -->
-                                        </ul>
-                                    </nav>
                                 </div>
                             </div>
                         </div>
@@ -267,188 +248,6 @@
                 </div>
             </div>
         </footer>
-    </div>
-
-    <!-- Add/Edit Transaction Modal -->
-    <div class="modal" id="transaction-modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title" id="transaction-modal-title">Add Transaction</h3>
-                    <button type="button" class="modal-close" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="transaction-form">
-                        <input type="hidden" id="transaction-id" name="transaction_id">
-                        <input type="hidden" id="transaction-type" name="transaction_type">
-
-                        <div class="form-group">
-                            <label for="amount" class="form-label">Amount</label>
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">$</span>
-                                </div>
-                                <input type="number" id="amount" name="amount" class="form-control" step="0.01" min="0.01" required>
-                            </div>
-                            <div class="invalid-feedback"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="description" class="form-label">Description</label>
-                            <input type="text" id="description" name="description" class="form-control" required>
-                            <div class="invalid-feedback"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="category" class="form-label">Category</label>
-                            <select id="category" name="category_id" class="form-control" required>
-                                <option value="" disabled selected>Select a category</option>
-                                <!-- Categories will be inserted here by JS -->
-                            </select>
-                            <div class="invalid-feedback"></div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="start-date" class="form-label">Date</label>
-                            <input type="date" id="start-date" name="start_date" class="form-control" required>
-                            <div class="invalid-feedback"></div>
-                        </div>
-
-                        <!-- Transaction Mode Selection -->
-                        <div class="form-group">
-                            <label class="form-label">Transaction Mode</label>
-                            <div class="transaction-mode-options">
-                                <div class="form-check">
-                                    <input type="radio" id="mode-single" name="transaction_mode" value="single" class="form-check-input" checked>
-                                    <label for="mode-single" class="form-check-label">Single Transaction</label>
-                                    <p class="form-text">One-time transaction that affects your balance immediately</p>
-                                </div>
-
-                                <div class="form-check" id="income-mode-option">
-                                    <input type="radio" id="mode-recurring" name="transaction_mode" value="recurring" class="form-check-input">
-                                    <label for="mode-recurring" class="form-check-label">Recurring Income</label>
-                                    <p class="form-text">Regular income that contributes to your daily budget (amount ÷ cycle days)</p>
-                                </div>
-
-                                <div class="form-check" id="expense-mode-option">
-                                    <input type="radio" id="mode-continuous" name="transaction_mode" value="continuous" class="form-check-input">
-                                    <label for="mode-continuous" class="form-check-label">Installment Plan</label>
-                                    <p class="form-text">Spread an expense over time rather than impacting your balance all at once</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="transaction-mode-help" class="alert alert-info mb-3" style="display: none;">
-                            Choose how this transaction should affect your finances.
-                        </div>
-
-                        <!-- Options for Recurring Income -->
-                        <div id="recurring-options" class="form-group border-top pt-3" style="display: none;">
-                            <label for="cycle-days" class="form-label">Cycle Period (days)</label>
-                            <input type="number" id="cycle-days" name="cycle_days" class="form-control" value="30" min="1">
-                            <small class="form-text">E.g., 30 for monthly salary. This will provide a daily budget allocation of amount/cycle_days.</small>
-                        </div>
-
-                        <!-- Options for Continuous Expense / Installment Plan -->
-                        <div id="duration-options" class="form-group border-top pt-3" style="display: none;">
-                            <label for="duration-days" class="form-label">Duration (days)</label>
-                            <input type="number" id="duration-days" name="duration_days" class="form-control" value="30" min="1">
-                            <small class="form-text">Number of days over which to spread this expense. This will reduce your daily budget by amount/duration_days during this period.</small>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="save-transaction-btn">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Transaction Details Modal -->
-    <div class="modal" id="transaction-details-modal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title">Transaction Details</h3>
-                    <button type="button" class="modal-close" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="transaction-detail-row">
-                        <div class="transaction-detail-label">Amount:</div>
-                        <div class="transaction-detail-value" id="detail-amount">$0.00</div>
-                    </div>
-                    <div class="transaction-detail-row">
-                        <div class="transaction-detail-label">Type:</div>
-                        <div class="transaction-detail-value" id="detail-type">Income</div>
-                    </div>
-                    <div class="transaction-detail-row">
-                        <div class="transaction-detail-label">Mode:</div>
-                        <div class="transaction-detail-value" id="detail-mode">Single</div>
-                    </div>
-                    <div class="transaction-detail-row">
-                        <div class="transaction-detail-label">Description:</div>
-                        <div class="transaction-detail-value" id="detail-description">-</div>
-                    </div>
-                    <div class="transaction-detail-row">
-                        <div class="transaction-detail-label">Category:</div>
-                        <div class="transaction-detail-value" id="detail-category">-</div>
-                    </div>
-                    <div class="transaction-detail-row">
-                        <div class="transaction-detail-label">Date:</div>
-                        <div class="transaction-detail-value" id="detail-date">-</div>
-                    </div>
-                    <div class="transaction-detail-row">
-                        <div class="transaction-detail-label">Created:</div>
-                        <div class="transaction-detail-value" id="detail-created-at">-</div>
-                    </div>
-
-                    <div id="detail-impact-info" class="transaction-detail-section mt-3 border-top pt-3">
-                        <div class="transaction-detail-section-title">Impact Information</div>
-                        <p id="detail-impact-description" class="mb-2">This transaction directly affects your balance.</p>
-                    </div>
-
-                    <!-- Recurring details -->
-                    <div id="detail-recurring-section" style="display: none;">
-                        <div class="transaction-detail-divider"></div>
-                        <div class="transaction-detail-section-title">Recurring Details</div>
-                        <div class="transaction-detail-row">
-                            <div class="transaction-detail-label">Cycle:</div>
-                            <div class="transaction-detail-value" id="detail-cycle">-</div>
-                        </div>
-                        <div class="transaction-detail-row">
-                            <div class="transaction-detail-label">Daily Allocation:</div>
-                            <div class="transaction-detail-value" id="detail-daily-allocation">$0.00/day</div>
-                        </div>
-                        <p class="mt-2 text-muted">This recurring income contributes to your daily budget.</p>
-                    </div>
-
-                    <!-- Duration details -->
-                    <div id="detail-duration-section" style="display: none;">
-                        <div class="transaction-detail-divider"></div>
-                        <div class="transaction-detail-section-title">Installment Plan Details</div>
-                        <div class="transaction-detail-row">
-                            <div class="transaction-detail-label">Duration:</div>
-                            <div class="transaction-detail-value" id="detail-duration">-</div>
-                        </div>
-                        <div class="transaction-detail-row">
-                            <div class="transaction-detail-label">End Date:</div>
-                            <div class="transaction-detail-value" id="detail-end-date">-</div>
-                        </div>
-                        <div class="transaction-detail-row">
-                            <div class="transaction-detail-label">Daily Impact:</div>
-                            <div class="transaction-detail-value" id="detail-expense-allocation">$0.00/day</div>
-                        </div>
-                        <p class="mt-2 text-muted">This expense is spread over the duration period rather than impacting your balance all at once.</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="edit-transaction-btn">Edit</button>
-                    <button type="button" class="btn btn-danger" id="delete-transaction-btn">Delete</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Scripts -->
