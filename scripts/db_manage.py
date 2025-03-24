@@ -12,7 +12,7 @@ import sys
 
 # Define paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(PROJECT_ROOT, "data.db")
+DB_PATH = os.path.join(PROJECT_ROOT, "vela.db")
 SQL_DIR = os.path.join(PROJECT_ROOT, "sql")
 CREATE_SQL_PATH = os.path.join(SQL_DIR, "create_tables.sql")
 DROP_SQL_PATH = os.path.join(SQL_DIR, "drop_tables.sql")
