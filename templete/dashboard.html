@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/transaction-styles.css">
 </head>
 <body>
     <div class="page-wrapper">
@@ -16,11 +17,11 @@
                 <div class="header-logo">
                     <a href="dashboard.html">VELA <span>SYSTEM</span></a>
                 </div>
-                
+
                 <button class="header-menu-toggle">
                     <i class="fas fa-bars"></i>
                 </button>
-                
+
                 <div class="header-nav">
                     <div class="header-nav-item">
                         <a href="dashboard.html" class="header-nav-link active">Dashboard</a>
@@ -35,7 +36,7 @@
                         <a href="reports.html" class="header-nav-link">Reports</a>
                     </div>
                 </div>
-                
+
                 <div class="header-user">
                     <div class="header-user-info">
                         <div class="header-user-name">User</div>
@@ -57,7 +58,7 @@
                 </div>
             </div>
         </header>
-        
+
         <!-- Content wrapper -->
         <div class="content-wrapper">
             <!-- Sidebar -->
@@ -86,7 +87,7 @@
                             </li>
                         </ul>
                     </div>
-                    
+
                     <div class="nav-section">
                         <div class="nav-section-title">Reports</div>
                         <ul class="nav-list">
@@ -112,12 +113,12 @@
                     </div>
                 </div>
             </aside>
-            
+
             <!-- Main content -->
             <main class="main-content">
                 <div class="container">
                     <h1>Dashboard</h1>
-                    
+
                     <!-- Quick Action buttons -->
                     <div class="quick-actions mb-4">
                         <button id="add-income-btn" class="btn btn-success mr-2">
@@ -130,7 +131,7 @@
                             <i class="fas fa-chart-bar mr-1"></i> View Reports
                         </button>
                     </div>
-                    
+
                     <!-- Statistics Cards -->
                     <div class="dashboard-stats">
                         <div class="stat-card">
@@ -142,7 +143,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="stat-card">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-hourglass-half stat-card-icon"></i>
@@ -152,7 +153,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="stat-card">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-calendar-day stat-card-icon"></i>
@@ -162,7 +163,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="stat-card">
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-chart-line stat-card-icon"></i>
@@ -173,7 +174,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Day Capacity Trend Chart -->
                     <div class="card mb-4">
                         <div class="card-header">
@@ -192,7 +193,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Recent Transactions -->
                     <div class="card mb-4">
                         <div class="card-header">
@@ -222,7 +223,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Category Distribution -->
                     <div class="row">
                         <!-- Income Categories -->
@@ -241,7 +242,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Expense Categories -->
                         <div class="col-md-6 mb-4">
                             <div class="card">
@@ -262,7 +263,7 @@
                 </div>
             </main>
         </div>
-        
+
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-container">
@@ -297,7 +298,7 @@
             </div>
         </footer>
     </div>
-    
+
     <!-- Add Transaction Modal -->
     <div class="modal" id="transaction-modal">
         <div class="modal-dialog">
@@ -310,7 +311,7 @@
                     <form id="transaction-form">
                         <input type="hidden" id="transaction-id" name="transaction_id">
                         <input type="hidden" id="transaction-type" name="transaction_type">
-                        
+
                         <div class="form-group">
                             <label for="amount" class="form-label">Amount</label>
                             <div class="input-group">
@@ -321,13 +322,13 @@
                             </div>
                             <div class="invalid-feedback"></div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="description" class="form-label">Description</label>
                             <input type="text" id="description" name="description" class="form-control" required>
                             <div class="invalid-feedback"></div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="category" class="form-label">Category</label>
                             <select id="category" name="category_id" class="form-control" required>
@@ -336,33 +337,53 @@
                             </select>
                             <div class="invalid-feedback"></div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="start-date" class="form-label">Date</label>
                             <input type="date" id="start-date" name="start_date" class="form-control" required>
                             <div class="invalid-feedback"></div>
                         </div>
-                        
-                        <div class="form-check mb-3">
-                            <input type="checkbox" id="is-recurring" name="is_recurring" class="form-check-input">
-                            <label for="is-recurring" class="form-check-label">Recurring Income</label>
+
+                        <!-- Transaction Mode Selection -->
+                        <div class="form-group">
+                            <label class="form-label">Transaction Mode</label>
+                            <div class="transaction-mode-options">
+                                <div class="form-check">
+                                    <input type="radio" id="mode-single" name="transaction_mode" value="single" class="form-check-input" checked>
+                                    <label for="mode-single" class="form-check-label">Single Transaction</label>
+                                    <p class="form-text">One-time transaction that affects your balance immediately</p>
+                                </div>
+
+                                <div class="form-check" id="income-mode-option">
+                                    <input type="radio" id="mode-recurring" name="transaction_mode" value="recurring" class="form-check-input">
+                                    <label for="mode-recurring" class="form-check-label">Recurring Income</label>
+                                    <p class="form-text">Regular income that contributes to your daily budget (amount ÷ cycle days)</p>
+                                </div>
+
+                                <div class="form-check" id="expense-mode-option">
+                                    <input type="radio" id="mode-continuous" name="transaction_mode" value="continuous" class="form-check-input">
+                                    <label for="mode-continuous" class="form-check-label">Installment Plan</label>
+                                    <p class="form-text">Spread an expense over time rather than impacting your balance all at once</p>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div id="recurring-options" class="form-group" style="display: none;">
+
+                        <div id="transaction-mode-help" class="alert alert-info mb-3" style="display: none;">
+                            Choose how this transaction should affect your finances.
+                        </div>
+
+                        <!-- Options for Recurring Income -->
+                        <div id="recurring-options" class="form-group border-top pt-3" style="display: none;">
                             <label for="cycle-days" class="form-label">Cycle Period (days)</label>
                             <input type="number" id="cycle-days" name="cycle_days" class="form-control" value="30" min="1">
-                            <small class="form-text">E.g., 30 for monthly salary</small>
+                            <small class="form-text">E.g., 30 for monthly salary. This will provide a daily budget allocation of amount/cycle_days.</small>
                         </div>
-                        
-                        <div class="form-check mb-3">
-                            <input type="checkbox" id="has-duration" name="has_duration" class="form-check-input">
-                            <label for="has-duration" class="form-check-label">Continuous Expense</label>
-                        </div>
-                        
-                        <div id="duration-options" class="form-group" style="display: none;">
+
+                        <!-- Options for Continuous Expense / Installment Plan -->
+                        <div id="duration-options" class="form-group border-top pt-3" style="display: none;">
                             <label for="duration-days" class="form-label">Duration (days)</label>
-                            <input type="number" id="duration-days" name="duration_days" class="form-control" value="7" min="1">
-                            <small class="form-text">Number of days this expense continues</small>
+                            <input type="number" id="duration-days" name="duration_days" class="form-control" value="30" min="1">
+                            <small class="form-text">Number of days over which to spread this expense. This will reduce your daily budget by amount/duration_days during this period.</small>
                         </div>
                     </form>
                 </div>

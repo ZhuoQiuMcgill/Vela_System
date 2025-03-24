@@ -149,6 +149,12 @@ function updateTransactionModeOptions() {
     const recurringOptions = document.getElementById('recurring-options');
     const durationOptions = document.getElementById('duration-options');
     const transactionType = document.getElementById('transaction-type').value;
+    const transactionModeHelp = document.getElementById('transaction-mode-help');
+
+    // Set the help text to show by default
+    if (transactionModeHelp) {
+        transactionModeHelp.style.display = 'block';
+    }
 
     // Hide all options first
     if (recurringOptions) recurringOptions.style.display = 'none';
@@ -159,42 +165,45 @@ function updateTransactionModeOptions() {
         if (transactionType !== 'income') {
             // If not income, switch to single mode
             document.querySelector('input[value="single"]').checked = true;
-            return;
+            if (transactionModeHelp) {
+                transactionModeHelp.textContent = 'Recurring mode is only available for income transactions';
+                transactionModeHelp.className = 'alert alert-warning mb-3';
+            }
+            return updateTransactionModeOptions(); // Re-run with new selection
         }
 
         if (recurringOptions) recurringOptions.style.display = 'block';
+        if (transactionModeHelp) {
+            transactionModeHelp.textContent = 'Recurring income contributes to your daily budget (amount ÷ cycle days).';
+            transactionModeHelp.className = 'alert alert-info mb-3';
+        }
     }
     else if (selectedMode === 'continuous') {
         if (transactionType !== 'expense') {
             // If not expense, switch to single mode
             document.querySelector('input[value="single"]').checked = true;
-            return;
+            if (transactionModeHelp) {
+                transactionModeHelp.textContent = 'Installment plan is only available for expense transactions';
+                transactionModeHelp.className = 'alert alert-warning mb-3';
+            }
+            return updateTransactionModeOptions(); // Re-run with new selection
         }
 
         if (durationOptions) durationOptions.style.display = 'block';
-    }
-
-    // Update help text or visual indicators as needed
-    updateTransactionModeHelp(selectedMode);
-}
-
-/**
- * Update help text for transaction modes
- */
-function updateTransactionModeHelp(mode) {
-    const helpText = document.getElementById('transaction-mode-help');
-    if (!helpText) return;
-
-    switch (mode) {
-        case 'single':
-            helpText.textContent = 'Single transactions immediately impact your balance.';
-            break;
-        case 'recurring':
-            helpText.textContent = 'Recurring income contributes to your daily budget (amount ÷ cycle days).';
-            break;
-        case 'continuous':
-            helpText.textContent = 'Continuous expenses are spread over time, reducing your daily budget.';
-            break;
+        if (transactionModeHelp) {
+            transactionModeHelp.textContent = 'This expense will be spread over the specified duration, reducing your daily budget by (amount ÷ duration days).';
+            transactionModeHelp.className = 'alert alert-info mb-3';
+        }
+    } else {
+        // Single transaction
+        if (transactionModeHelp) {
+            if (transactionType === 'income') {
+                transactionModeHelp.textContent = 'This income will immediately increase your balance.';
+            } else {
+                transactionModeHelp.textContent = 'This expense will immediately decrease your balance.';
+            }
+            transactionModeHelp.className = 'alert alert-info mb-3';
+        }
     }
 }
 
@@ -454,8 +463,8 @@ function renderTransactionsTable() {
             detailsText = `Recurring (${transaction.cycle_days} days)`;
             modeIcon = '<i class="fas fa-sync-alt text-primary" title="Recurring Income"></i> ';
         } else if (transaction.transaction_mode === 'continuous') {
-            detailsText = `Continuous (${transaction.duration_days} days)`;
-            modeIcon = '<i class="fas fa-hourglass-half text-info" title="Continuous Expense"></i> ';
+            detailsText = `Installment (${transaction.duration_days} days)`;
+            modeIcon = '<i class="fas fa-hourglass-half text-info" title="Installment Plan"></i> ';
         } else {
             detailsText = 'Single transaction';
             modeIcon = '<i class="fas fa-coins" title="Single Transaction"></i> ';
@@ -697,7 +706,7 @@ function exportTransactionsCSV() {
         if (transaction.transaction_mode === 'recurring') {
             details = `Recurring (${transaction.cycle_days} days)`;
         } else if (transaction.transaction_mode === 'continuous') {
-            details = `Continuous (${transaction.duration_days} days)`;
+            details = `Installment (${transaction.duration_days} days)`;
         } else {
             details = 'Single transaction';
         }
@@ -752,7 +761,12 @@ async function viewTransactionDetails(transactionId) {
         // Transaction Mode
         const modeElement = document.getElementById('detail-mode');
         if (modeElement) {
-            const modeText = currentTransaction.transaction_mode.charAt(0).toUpperCase() + currentTransaction.transaction_mode.slice(1);
+            let modeText = 'Single (Direct Impact)';
+            if (currentTransaction.transaction_mode === 'recurring') {
+                modeText = 'Recurring Income';
+            } else if (currentTransaction.transaction_mode === 'continuous') {
+                modeText = 'Installment Plan';
+            }
             modeElement.textContent = modeText;
         }
 
@@ -862,6 +876,20 @@ function openEditTransactionModal(transaction) {
         if (durationInput) durationInput.value = transaction.duration_days;
     }
 
+    // Toggle display of transaction mode options based on transaction type
+    const incomeModeOption = document.getElementById('income-mode-option');
+    const expenseModeOption = document.getElementById('expense-mode-option');
+
+    if (incomeModeOption && expenseModeOption) {
+        if (transaction.transaction_type === 'income') {
+            incomeModeOption.style.display = 'block';
+            expenseModeOption.style.display = 'none';
+        } else {
+            incomeModeOption.style.display = 'none';
+            expenseModeOption.style.display = 'block';
+        }
+    }
+
     // Update mode options visibility
     updateTransactionModeOptions();
 
@@ -897,9 +925,9 @@ function openTransactionModal(type) {
     const idInput = document.getElementById('transaction-id');
     const typeInput = document.getElementById('transaction-type');
     const amountInput = document.getElementById('amount');
-    const descriptionInput = document.getElementById('description');
-    const categorySelect = document.getElementById('category');
     const startDateInput = document.getElementById('start-date');
+    const incomeModeOption = document.getElementById('income-mode-option');
+    const expenseModeOption = document.getElementById('expense-mode-option');
 
     // Reset form
     form.reset();
@@ -912,16 +940,28 @@ function openTransactionModal(type) {
     // Set today's date
     startDateInput.value = utils.getCurrentDateString();
 
+    // Show/hide appropriate transaction modes based on type
+    if (incomeModeOption && expenseModeOption) {
+        if (type === 'income') {
+            incomeModeOption.style.display = 'block';
+            expenseModeOption.style.display = 'none';
+        } else {
+            incomeModeOption.style.display = 'none';
+            expenseModeOption.style.display = 'block';
+        }
+    }
+
     // Default to single transaction mode
     const singleModeRadio = document.querySelector('input[name="transaction_mode"][value="single"]');
     if (singleModeRadio) {
         singleModeRadio.checked = true;
     }
 
-    // Update help text for transaction mode
-    updateTransactionModeHelp('single');
+    // Update UI for transaction type and mode
+    updateTransactionModeOptions();
 
     // Reset and populate category dropdown
+    const categorySelect = document.getElementById('category');
     if (categorySelect) {
         utils.populateSelect(
             categorySelect,
@@ -932,8 +972,11 @@ function openTransactionModal(type) {
         );
     }
 
-    // Update form for transaction type
-    updateTransactionModeOptions();
+    // Set default duration for installment plans to 30 days (1 month)
+    const durationInput = document.getElementById('duration-days');
+    if (durationInput) {
+        durationInput.value = 30;
+    }
 
     // Show modal
     modal.style.display = 'block';
