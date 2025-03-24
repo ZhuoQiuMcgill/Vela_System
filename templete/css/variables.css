@@ -1,0 +1,106 @@
+:root {
+    /* Main color palette */
+    --color-primary: #D4AF37;      /* Gold */
+    --color-primary-light: #F5E7A3; /* Light gold */
+    --color-primary-dark: #A58A28;  /* Dark gold */
+    
+    --color-secondary: #1A1A1A;    /* Dark gray (almost black) */
+    --color-secondary-light: #333333; /* Light black */
+    --color-secondary-dark: #000000; /* Pure black */
+    
+    --color-white: #FFFFFF;         /* White */
+    --color-light-gray: #F5F5F5;    /* Light gray (off-white) */
+    --color-gray: #CCCCCC;          /* Medium gray */
+    --color-dark-gray: #666666;     /* Dark gray */
+    
+    /* Status colors */
+    --color-success: #28A745;       /* Green */
+    --color-warning: #FFC107;       /* Yellow */
+    --color-danger: #DC3545;        /* Red */
+    --color-info: #17A2B8;          /* Blue */
+    
+    /* Text colors */
+    --text-primary: #1A1A1A;        /* Main text color */
+    --text-secondary: #666666;      /* Secondary text color */
+    --text-light: #FFFFFF;          /* Light text color */
+    --text-muted: #999999;          /* Muted text color */
+    
+    /* Background colors */
+    --bg-primary: #FFFFFF;          /* Main background color (white) */
+    --bg-secondary: #F5F5F5;        /* Secondary background color */
+    --bg-dark: #1A1A1A;             /* Dark background */
+    --bg-accent: #D4AF37;           /* Accent background (gold) */
+    
+    /* Border colors */
+    --border-light: #EEEEEE;        /* Light border */
+    --border-medium: #CCCCCC;       /* Medium border */
+    --border-dark: #999999;         /* Dark border */
+    
+    /* Box shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    
+    /* Typography */
+    --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-family-mono: 'Roboto Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    
+    /* Font sizes */
+    --font-size-xs: 0.75rem;     /* 12px */
+    --font-size-sm: 0.875rem;    /* 14px */
+    --font-size-md: 1rem;        /* 16px */
+    --font-size-lg: 1.125rem;    /* 18px */
+    --font-size-xl: 1.25rem;     /* 20px */
+    --font-size-2xl: 1.5rem;     /* 24px */
+    --font-size-3xl: 1.875rem;   /* 30px */
+    --font-size-4xl: 2.25rem;    /* 36px */
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;      /* 4px */
+    --spacing-sm: 0.5rem;       /* 8px */
+    --spacing-md: 1rem;         /* 16px */
+    --spacing-lg: 1.5rem;       /* 24px */
+    --spacing-xl: 2rem;         /* 32px */
+    --spacing-2xl: 3rem;        /* 48px */
+    --spacing-3xl: 4rem;        /* 64px */
+    
+    /* Border radius */
+    --radius-sm: 0.125rem;     /* 2px */
+    --radius-md: 0.25rem;      /* 4px */
+    --radius-lg: 0.5rem;       /* 8px */
+    --radius-xl: 1rem;         /* 16px */
+    --radius-full: 9999px;     /* Full rounded */
+    
+    /* Animation */
+    --transition-fast: 150ms;
+    --transition-normal: 300ms;
+    --transition-slow: 500ms;
+    
+    /* Z-index */
+    --z-negative: -1;
+    --z-0: 0;
+    --z-10: 10;
+    --z-20: 20;
+    --z-30: 30;
+    --z-40: 40;
+    --z-50: 50;
+    --z-auto: auto;
+    
+    /* Layout */
+    --container-max-width: 1200px;
+    --header-height: 64px;
+    --footer-height: 60px;
+    --sidebar-width: 250px;
+    
+    /* API Configuration */
+    --api-base-url: 'http://localhost:5000/api';
+}
+
+/* Dark theme (for future implementation) */
+[data-theme="dark"] {
+    --bg-primary: #1A1A1A;
+    --bg-secondary: #333333;
+    --text-primary: #FFFFFF;
+    --text-secondary: #CCCCCC;
+    /* Other dark theme variables would go here */
+}

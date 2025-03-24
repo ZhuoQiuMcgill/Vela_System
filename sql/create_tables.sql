@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS categories (
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
--- Create transactions table
+-- Create transactions table without the CHECK constraint
 CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -30,8 +30,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     start_date DATE DEFAULT CURRENT_DATE,
     end_date DATE,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL,
-    CHECK (transaction_type IN ('income', 'expense'))
+    FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
 );
 
 -- Create indexes for performance

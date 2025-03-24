@@ -5,12 +5,15 @@ from sqlalchemy import func
 
 
 def hash_password(password):
-    """Create a bcrypt hash of the password."""
-    return generate_password_hash(password, method='bcrypt')
+    """Create a secure hash of the password using SHA-256 (built-in to Werkzeug)."""
+    from werkzeug.security import generate_password_hash
+    # Use sha256 instead of bcrypt since bcrypt is causing issues
+    return generate_password_hash(password, method='pbkdf2:sha256')
 
 
 def verify_password(stored_hash, provided_password):
     """Verify a stored password hash against a provided password."""
+    from werkzeug.security import check_password_hash
     return check_password_hash(stored_hash, provided_password)
 
 

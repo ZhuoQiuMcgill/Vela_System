@@ -229,9 +229,12 @@ def create_transaction(current_user):
     if not data or 'amount' not in data or 'transaction_type' not in data:
         return jsonify({'message': 'Missing required fields'}), 400
 
+    # Convert transaction_type to lowercase for database compatibility
+    transaction_type_raw = data['transaction_type'].lower()
+
     # Validate transaction type
     try:
-        transaction_type = TransactionType(data['transaction_type'])
+        transaction_type = TransactionType(transaction_type_raw)
     except ValueError:
         return jsonify({'message': 'Invalid transaction type'}), 400
 
@@ -363,7 +366,9 @@ def transaction_operations(current_user, transaction_id):
 
         if 'transaction_type' in data:
             try:
-                transaction.transaction_type = TransactionType(data['transaction_type'])
+                # Convert to lowercase for database compatibility
+                transaction_type_raw = data['transaction_type'].lower()
+                transaction.transaction_type = TransactionType(transaction_type_raw)
             except ValueError:
                 return jsonify({'message': 'Invalid transaction type'}), 400
 
@@ -609,4 +614,3 @@ def health_check():
         'message': 'VELA SYSTEM API is running',
         'timestamp': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
     }), 200
-

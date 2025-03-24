@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - VELA SYSTEM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-container">
+                <div class="header-logo">
+                    <a href="dashboard.html">VELA <span>SYSTEM</span></a>
+                </div>
+                
+                <button class="header-menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <div class="header-nav">
+                    <div class="header-nav-item">
+                        <a href="dashboard.html" class="header-nav-link">Dashboard</a>
+                    </div>
+                    <div class="header-nav-item">
+                        <a href="transactions.html" class="header-nav-link">Transactions</a>
+                    </div>
+                    <div class="header-nav-item">
+                        <a href="categories.html" class="header-nav-link">Categories</a>
+                    </div>
+                    <div class="header-nav-item">
+                        <a href="reports.html" class="header-nav-link active">Reports</a>
+                    </div>
+                </div>
+                
+                <div class="header-user">
+                    <div class="header-user-info">
+                        <div class="header-user-name">User</div>
+                        <div class="header-user-balance">$0.00</div>
+                    </div>
+                    <div class="header-user-avatar">U</div>
+                    <div class="header-dropdown">
+                        <a href="profile.html" class="header-dropdown-item">
+                            <i class="fas fa-user-circle mr-2"></i> Profile
+                        </a>
+                        <a href="settings.html" class="header-dropdown-item">
+                            <i class="fas fa-cog mr-2"></i> Settings
+                        </a>
+                        <div class="header-dropdown-divider"></div>
+                        <a href="#" class="header-dropdown-item logout-button">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Content wrapper -->
+        <div class="content-wrapper">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-nav">
+                    <div class="nav-section">
+                        <div class="nav-section-title">Main</div>
+                        <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="dashboard.html" class="nav-link">
+                                    <i class="fas fa-home nav-icon"></i>
+                                    <span class="nav-text">Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="transactions.html" class="nav-link">
+                                    <i class="fas fa-exchange-alt nav-icon"></i>
+                                    <span class="nav-text">Transactions</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="categories.html" class="nav-link">
+                                    <i class="fas fa-tags nav-icon"></i>
+                                    <span class="nav-text">Categories</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="nav-section">
+                        <div class="nav-section-title">Reports</div>
+                        <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="reports.html" class="nav-link active" id="overview-report-nav">
+                                    <i class="fas fa-chart-line nav-icon"></i>
+                                    <span class="nav-text">Overview</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="reports.html?type=categories" class="nav-link" id="categories-report-nav">
+                                    <i class="fas fa-chart-pie nav-icon"></i>
+                                    <span class="nav-text">Categories</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="reports.html?type=day_capacity" class="nav-link" id="day-capacity-report-nav">
+                                    <i class="fas fa-calendar-day nav-icon"></i>
+                                    <span class="nav-text">Day Capacity</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Main content -->
+            <main class="main-content">
+                <div class="container">
+                    <h1 id="report-title">Reports</h1>
+                    
+                    <!-- Date Range Picker -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <div class="card-header-title">Date Range</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="report-start-date" class="form-label">Start Date</label>
+                                    <input type="date" id="report-start-date" class="form-control">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="report-end-date" class="form-label">End Date</label>
+                                    <input type="date" id="report-end-date" class="form-control">
+                                </div>
+                                
+                                <div class="form-group d-flex align-items-end">
+                                    <button id="apply-report-dates" class="btn btn-primary">Apply</button>
+                                </div>
+                                
+                                <div class="form-group d-flex align-items-end ml-auto">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-outline-secondary date-preset" data-range="month">This Month</button>
+                                        <button type="button" class="btn btn-outline-secondary date-preset" data-range="last-month">Last Month</button>
+                                        <button type="button" class="btn btn-outline-secondary date-preset" data-range="quarter">Last 3 Months</button>
+                                        <button type="button" class="btn btn-outline-secondary date-preset" data-range="year">This Year</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Overview Report Section -->
+                    <div id="overview-report" class="report-section active">
+                        <!-- Summary Cards -->
+                        <div class="dashboard-stats mb-4">
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-arrow-up stat-card-icon text-success"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="overview-total-income">$0.00</div>
+                                        <div class="stat-card-label">Total Income</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-arrow-down stat-card-icon text-danger"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="overview-total-expense">$0.00</div>
+                                        <div class="stat-card-label">Total Expenses</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-balance-scale stat-card-icon"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="overview-net-change">$0.00</div>
+                                        <div class="stat-card-label">Net Change</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-calendar-day stat-card-icon"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="overview-avg-day-capacity">$0.00</div>
+                                        <div class="stat-card-label">Avg. Day Capacity</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Income vs Expenses Chart -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <div class="card-header-title">Income vs Expenses</div>
+                                <div>
+                                    <select id="income-expense-chart-type" class="form-control form-control-sm">
+                                        <option value="bar">Bar Chart</option>
+                                        <option value="line">Line Chart</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="income-expense-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Day Capacity Trend -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <div class="card-header-title">Day Capacity Trend</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="overview-day-capacity-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Transactions Summary -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">Transactions Summary</div>
+                                <button id="export-summary-btn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-download mr-1"></i> Export
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Income</th>
+                                                <th>Expenses</th>
+                                                <th>Net</th>
+                                                <th>Day Capacity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="summary-table">
+                                            <!-- Summary rows will be inserted here by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="overview-loading" class="text-center py-4">
+                                    <div class="loading"></div>
+                                    <p class="mt-2">Loading report data...</p>
+                                </div>
+                                <div id="overview-no-data" class="text-center py-4" style="display: none;">
+                                    <p class="text-muted">No data available for the selected date range</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Categories Report Section -->
+                    <div id="categories-report" class="report-section" style="display: none;">
+                        <!-- Categories Summary Cards -->
+                        <div class="dashboard-stats mb-4">
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-arrow-up stat-card-icon text-success"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="categories-total-income">$0.00</div>
+                                        <div class="stat-card-label">Total Income</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-arrow-down stat-card-icon text-danger"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="categories-total-expense">$0.00</div>
+                                        <div class="stat-card-label">Total Expenses</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-tag stat-card-icon"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="categories-top-income">-</div>
+                                        <div class="stat-card-label">Top Income Category</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-tag stat-card-icon"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="categories-top-expense">-</div>
+                                        <div class="stat-card-label">Top Expense Category</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Category Distribution Charts -->
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-header-title">Income by Category</div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="height: 300px;">
+                                            <canvas id="income-categories-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-header-title">Expenses by Category</div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="height: 300px;">
+                                            <canvas id="expense-categories-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Categories Details -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">Category Details</div>
+                                <button id="export-categories-btn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-download mr-1"></i> Export
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Category</th>
+                                                <th>Type</th>
+                                                <th class="text-right">Amount</th>
+                                                <th class="text-right">Percentage</th>
+                                                <th class="text-right">Transactions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="categories-table">
+                                            <!-- Categories details will be inserted here by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="categories-loading" class="text-center py-4">
+                                    <div class="loading"></div>
+                                    <p class="mt-2">Loading category data...</p>
+                                </div>
+                                <div id="categories-no-data" class="text-center py-4" style="display: none;">
+                                    <p class="text-muted">No category data available for the selected date range</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Day Capacity Report Section -->
+                    <div id="day-capacity-report" class="report-section" style="display: none;">
+                        <!-- Day Capacity Summary Cards -->
+                        <div class="dashboard-stats mb-4">
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-calendar-day stat-card-icon"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="current-day-capacity">$0.00</div>
+                                        <div class="stat-card-label">Today's Capacity</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-chart-line stat-card-icon"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="avg-day-capacity">$0.00</div>
+                                        <div class="stat-card-label">Period Average</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-arrow-up stat-card-icon text-success"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="max-day-capacity">$0.00</div>
+                                        <div class="stat-card-label">Maximum Capacity</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-arrow-down stat-card-icon text-danger"></i>
+                                    <div>
+                                        <div class="stat-card-value" id="min-day-capacity">$0.00</div>
+                                        <div class="stat-card-label">Minimum Capacity</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Day Capacity Trend Chart -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <div class="card-header-title">Day Capacity Trend</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="height: 300px;">
+                                    <canvas id="day-capacity-trend-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Day Capacity Details -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">Daily Capacity Details</div>
+                                <button id="export-day-capacity-btn" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-download mr-1"></i> Export
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-container">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th class="text-right">Day Capacity</th>
+                                                <th class="text-right">Income Allocation</th>
+                                                <th class="text-right">Expense Allocation</th>
+                                                <th>Active Transactions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="day-capacity-table">
+                                            <!-- Day capacity details will be inserted here by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="day-capacity-loading" class="text-center py-4">
+                                    <div class="loading"></div>
+                                    <p class="mt-2">Loading day capacity data...</p>
+                                </div>
+                                <div id="day-capacity-no-data" class="text-center py-4" style="display: none;">
+                                    <p class="text-muted">No day capacity data available for the selected date range</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-container">
+                <div class="footer-content">
+                    <div class="footer-logo">
+                        <div class="footer-logo-text">VELA <span>SYSTEM</span></div>
+                    </div>
+                    <div class="footer-nav">
+                        <a href="dashboard.html" class="footer-nav-link">Dashboard</a>
+                        <a href="transactions.html" class="footer-nav-link">Transactions</a>
+                        <a href="categories.html" class="footer-nav-link">Categories</a>
+                        <a href="reports.html" class="footer-nav-link">Reports</a>
+                    </div>
+                </div>
+                <div class="footer-divider"></div>
+                <div class="footer-bottom">
+                    <div class="footer-copyright">
+                        &copy; <span class="current-year">2024</span> VELA <span>SYSTEM</span>. All rights reserved.
+                    </div>
+                    <div class="footer-social">
+                        <a href="#" class="footer-social-link">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="footer-social-link">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="footer-social-link">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/chart-loader.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/reports.js"></script>
+</body>
+</html>

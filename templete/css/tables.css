@@ -1,0 +1,205 @@
+.table-container {
+    overflow-x: auto;
+    margin-bottom: var(--spacing-lg);
+}
+
+.table {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: var(--spacing-md);
+    background-color: transparent;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    vertical-align: middle;
+    border-top: 1px solid var(--border-light);
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid var(--border-light);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: left;
+}
+
+.table tbody + tbody {
+    border-top: 2px solid var(--border-light);
+}
+
+.table-sm th,
+.table-sm td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.table-bordered {
+    border: 1px solid var(--border-light);
+}
+
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid var(--border-light);
+}
+
+.table-borderless th,
+.table-borderless td,
+.table-borderless thead th,
+.table-borderless tbody + tbody {
+    border: 0;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--bg-secondary);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(212, 175, 55, 0.075);
+}
+
+.table-primary,
+.table-primary > th,
+.table-primary > td {
+    background-color: rgba(212, 175, 55, 0.2);
+}
+
+.table-secondary,
+.table-secondary > th,
+.table-secondary > td {
+    background-color: rgba(26, 26, 26, 0.1);
+}
+
+.table-success,
+.table-success > th,
+.table-success > td {
+    background-color: rgba(40, 167, 69, 0.2);
+}
+
+.table-danger,
+.table-danger > th,
+.table-danger > td {
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
+.table-warning,
+.table-warning > th,
+.table-warning > td {
+    background-color: rgba(255, 193, 7, 0.2);
+}
+
+.table-info,
+.table-info > th,
+.table-info > td {
+    background-color: rgba(23, 162, 184, 0.2);
+}
+
+/* Responsive tables */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Table with actions */
+.table-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+/* Table pagination */
+.table-pagination {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: var(--spacing-md);
+}
+
+.page-link {
+    position: relative;
+    display: block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    margin-left: -1px;
+    line-height: 1.25;
+    color: var(--color-primary);
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-light);
+}
+
+.page-link:hover {
+    z-index: 2;
+    color: var(--color-primary-dark);
+    text-decoration: none;
+    background-color: var(--bg-secondary);
+    border-color: var(--border-light);
+}
+
+.page-link:focus {
+    z-index: 3;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+}
+
+.page-item.active .page-link {
+    z-index: 3;
+    color: var(--text-light);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.page-item.disabled .page-link {
+    color: var(--text-muted);
+    pointer-events: none;
+    cursor: auto;
+    background-color: var(--bg-primary);
+    border-color: var(--border-light);
+}
+
+.page-item:first-child .page-link {
+    margin-left: 0;
+    border-top-left-radius: var(--radius-md);
+    border-bottom-left-radius: var(--radius-md);
+}
+
+.page-item:last-child .page-link {
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+}
+
+/* Transaction types in tables */
+.transaction-type {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.transaction-type-income {
+    background-color: rgba(40, 167, 69, 0.2);
+    color: var(--color-success);
+}
+
+.transaction-type-expense {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: var(--color-danger);
+}
+
+/* Amount formatting */
+.amount {
+    font-weight: 600;
+    text-align: right;
+}
+
+.amount-positive {
+    color: var(--color-success);
+}
+
+.amount-negative {
+    color: var(--color-danger);
+}

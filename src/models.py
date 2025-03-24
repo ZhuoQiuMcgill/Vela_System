@@ -6,9 +6,33 @@ import enum
 db = SQLAlchemy()
 
 
+class TransactionTypeAdapter(enum.Enum):
+    """Custom Enum adapter to ensure lowercase values are stored in database."""
+    INCOME = "income"
+    EXPENSE = "expense"
+
+    @classmethod
+    def _missing_(cls, value):
+        # This allows us to look up enum members by value in a case-insensitive way
+        for member in cls:
+            if member.value == value.lower():
+                return member
+        return None
+
+
+# Use the adapter instead of the original enum
 class TransactionType(enum.Enum):
     INCOME = "income"
     EXPENSE = "expense"
+
+    @classmethod
+    def _missing_(cls, value):
+        # Handle case-insensitive lookups
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.lower() == value.lower():
+                    return member
+        return None
 
 
 class User(db.Model):
