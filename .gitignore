@@ -1,4 +1,5 @@
 data.db
 .idea
 venv
-*\__pycache__\*
+__pycache__
+vela.db

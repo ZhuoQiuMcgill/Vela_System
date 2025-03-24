@@ -115,4 +115,3 @@ if __name__ == '__main__':
     logger.info("VELA SYSTEM starting up...")
     logger.info("API endpoints available at http://127.0.0.1:5000/api/")
     app.run(debug=True)
-    

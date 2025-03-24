@@ -1,77 +1,192 @@
 # VELA SYSTEM
 
-A lightweight personal accounting system backend deployed on a cloud server.
+A lightweight personal accounting system backend with dynamic budget calculation, category management, and long-term balance tracking.
 
-## Project Overview
+## System Overview
 
-VELA SYSTEM is a Flask-based API-only service for personal income/expense management with dynamically calculated daily available budget (day_capacity). The application uses SQLite for data persistence with a single-file database stored directly in the project directory.
+VELA SYSTEM is a Flask-based API-only service designed for personal finance management. It provides a robust backend for tracking income and expenses, managing categories, and calculating daily available budgets. The system is built with simplicity and flexibility in mind, using SQLite for data persistence.
 
 ## Core Features
 
-1. **User System**
-   - Registration/Login with username and password authentication
-   - Passwords stored as bcrypt hashes
-   - JWT-based authentication for API endpoints
+### 1. User Management
 
-2. **Amount Management**
-   - Support for three transaction types:
-     - Single transactions (immediate effect)
-     - Recurring income (with cycle period)
-     - Continuous expenses (with duration)
-   - Complete CRUD operations for transactions
-   - Historical record queries with time range filtering
+- **Secure Authentication**: Username/password authentication with bcrypt hashing
+- **JWT-based API Access**: Stateless authentication using JSON Web Tokens
+- **Balance Tracking**: Multiple balance calculations for different financial perspectives
 
-3. **Dynamic Day Capacity Calculation**
-   - Daily available budget based on active recurring incomes and continuous expenses
-   - Validity period judgments for different transaction types
-   - Real-time formula: Daily available budget = Σ(active recurring income allocations) - Σ(active continuous expense allocations)
+### 2. Transaction Management
 
-4. **Data Aggregation**
-   - Reports by day/month/custom periods
-   - Income/expense totals
-   - Daily available budget trends
-   - Current total balance
+VELA SYSTEM supports three distinct transaction types:
 
-## Technical Implementation
+- **Single Transactions**: One-time incomes or expenses that affect your balance immediately
+- **Recurring Income**: Regular income (e.g., salary) spread over a cycle period
+- **Continuous Expenses**: Expenses distributed over a specific duration (e.g., vacation costs)
 
-### Project Structure
+### 3. Category Management
 
-- `app.py` - Main application file
-- `models.py` - SQLAlchemy data models
-- `routes.py` - API endpoints
-- `utils.py` - Helper functions for password hashing and day_capacity calculations
-- `config.py` - Application configuration
-- `vela.db` - SQLite database file (created on first run)
+- **Automatic Categorization**: Default categories created for new users
+- **Custom Categories**: Create, modify, and delete transaction categories
+- **Category Reports**: Breakdown of spending and income by category
 
-### Database Design
+### 4. Dynamic Day Capacity Calculation
 
-- **users table**
-  - id, username, password_hash, initial_balance
-  - current_total_balance (dynamically calculated)
+The core concept of VELA SYSTEM is the "day capacity" - your daily available budget:
 
-- **transactions table**
-  - id, user_id, amount, transaction_type, description
-  - created_at, start_date, end_date
-  - is_recurring, cycle_days, duration_days
+- **Real-time Formula**: `Daily Budget = Σ(active recurring income allocations) - Σ(active continuous expense allocations)`
+- **Time-aware Calculations**: Transactions affect day capacity only during their active periods
+- **Trend Analysis**: Track how your daily budget changes over time
 
-### API Endpoints
+### 5. Multi-perspective Balance Tracking
 
-#### Authentication
-- `POST /api/register` - Create a new user account
-- `POST /api/login` - Authenticate and get JWT token
+- **Current Total Balance**: Immediate financial state (initial balance + completed transactions)
+- **Long-term Balance**: Comprehensive view including the impact of recurring transactions
 
-#### Transaction Operations
-- `POST /api/transactions` - Create a new transaction
-- `GET /api/transactions` - List transactions (with optional time filters)
-- `GET /api/transactions/<id>` - Get transaction details
-- `PUT /api/transactions/<id>` - Update transaction
-- `DELETE /api/transactions/<id>` - Delete transaction
+## System Architecture
 
-#### Reports
-- `GET /api/reports/day_capacity?date=YYYY-MM-DD` - Get day_capacity for a specific date
-- `GET /api/reports/summary?start=YYYY-MM-DD&end=YYYY-MM-DD` - Get summary for a date range
+VELA SYSTEM follows a modular architecture with clear separation of concerns:
+
+```
+VELA SYSTEM
+├── app.py                 # Application entry point
+├── config.py              # Configuration settings
+├── models.py              # Data models and database schema
+├── routes.py              # API endpoints and request handling
+├── utils.py               # Helper functions and business logic
+├── vela.db                # SQLite database file
+├── sql/                   # SQL scripts for database management
+│   ├── create_tables.sql  # Table creation scripts
+│   └── drop_tables.sql    # Table cleanup scripts
+└── scripts/               # Utility scripts
+    ├── db_manage.py       # Database management CLI
+    └── migrate_db.py      # Schema migration tool
+```
+
+## Database Design
+
+### Entity Relationship Diagram
+
+```
+┌─────────┐       ┌──────────────┐       ┌────────────┐
+│  Users  │       │ Transactions │       │ Categories │
+├─────────┤       ├──────────────┤       ├────────────┤
+│ id      │       │ id           │       │ id         │
+│ username│◄──┐   │ user_id      │─────► │ user_id    │
+│ password│   └───│ category_id  │◄───── │ name       │
+│ balance │       │ amount       │       │ description│
+└─────────┘       │ type         │       └────────────┘
+                  │ description  │
+                  │ is_recurring │
+                  │ cycle_days   │
+                  │ duration_days│
+                  │ start_date   │
+                  │ end_date     │
+                  └──────────────┘
+```
+
+### Data Models
+
+1. **User**: Account information and authentication
+2. **Category**: Transaction categorization system  
+3. **Transaction**: Financial transactions with timing logic
+
+## Implementation Details
+
+### Transaction Processing Logic
+
+1. **Single Transactions**
+   - Directly affect current total balance
+   - No impact on day capacity
+   - Example: One-time purchase or income
+
+2. **Recurring Income**
+   - Contribution to day capacity = amount ÷ cycle_days
+   - Affects day capacity within active cycles
+   - Example: Monthly salary providing daily budget allocation
+
+3. **Continuous Expenses**
+   - Daily allocation = amount ÷ duration_days
+   - Reduces day capacity during active period
+   - Example: Vacation expenses spread across trip duration
+
+### Balance Calculation
+
+1. **Current Total Balance**
+   ```python
+   def current_total_balance(user):
+       balance = user.initial_balance
+       for transaction in user.transactions:
+           if not transaction.is_recurring and not transaction.duration_days:
+               if transaction.transaction_type == TransactionType.INCOME:
+                   balance += transaction.amount
+               else:
+                   balance -= transaction.amount
+       return balance
+   ```
+
+2. **Long-term Balance**
+   ```python
+   def long_term_balance(user):
+       balance = user.initial_balance
+       today = datetime.utcnow().date()
+       
+       for transaction in user.transactions:
+           # Add all income transactions
+           if transaction.transaction_type == TransactionType.INCOME:
+               if transaction.is_recurring and transaction.cycle_days:
+                   # Calculate cycles from start_date to now
+                   days_since_start = (today - transaction.start_date).days
+                   if days_since_start >= 0:
+                       cycles = (days_since_start // transaction.cycle_days) + 1
+                       balance += transaction.amount * cycles
+               else:  # Single income
+                   balance += transaction.amount
+           else:  # Expense transaction
+               if transaction.duration_days:
+                   # Include if expense period has started
+                   if transaction.start_date <= today:
+                       balance -= transaction.amount
+               else:  # Single expense
+                   balance -= transaction.amount
+       
+       return balance
+   ```
+
+### Day Capacity Calculation
+
+```python
+def calculate_day_capacity(user, date):
+    total_income_allocation = 0
+    total_expense_allocation = 0
+    
+    for transaction in user.transactions:
+        # Skip single transactions
+        if not transaction.is_recurring and not transaction.duration_days:
+            continue
+            
+        # Check if transaction is active on the specified date
+        if not is_transaction_active(transaction, date):
+            continue
+            
+        # Calculate daily allocation
+        daily_allocation = calculate_daily_allocation(transaction)
+        
+        if transaction.transaction_type == TransactionType.INCOME:
+            total_income_allocation += daily_allocation
+        else:
+            total_expense_allocation += daily_allocation
+    
+    return total_income_allocation - total_expense_allocation
+```
 
 ## Installation and Setup
+
+### Prerequisites
+
+- Python 3.8+
+- pip (Python package manager)
+- Virtual environment (recommended)
+
+### Installation Steps
 
 1. **Clone the repository**
 
@@ -80,7 +195,7 @@ VELA SYSTEM is a Flask-based API-only service for personal income/expense manage
    cd vela-system
    ```
 
-2. **Create a virtual environment**
+2. **Create and activate a virtual environment**
 
    ```bash
    python -m venv venv
@@ -93,85 +208,89 @@ VELA SYSTEM is a Flask-based API-only service for personal income/expense manage
    pip install -r requirements.txt
    ```
 
-4. **Run the application**
+4. **Initialize database**
 
    ```bash
-   python app.py
+   python scripts/db_manage.py init
    ```
 
-   The server will start at `http://127.0.0.1:5000`
+5. **Run the application**
 
-## API Usage Examples
+   ```bash
+   python src/app.py
+   ```
 
-### Register a new user
+   The API server will start at `http://127.0.0.1:5000/api/`
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/register \
-  -H "Content-Type: application/json" \
-  -d '{"username": "user1", "password": "password123", "initial_balance": 10000}'
-```
+### Environment Variables
 
-### Login and get token
+- `SECRET_KEY`: JWT secret key (default: "vela-system-secret-key")
+- `FLASK_ENV`: Environment setting (development/production)
+- `FLASK_DEBUG`: Enable debug mode (True/False)
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "user1", "password": "password123"}'
-```
+## Upgrading From Previous Versions
 
-### Add a recurring income (monthly salary)
+### From v1.0 to v1.1
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/transactions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-token>" \
-  -d '{
-    "amount": 30000,
-    "transaction_type": "income",
-    "description": "Monthly Salary",
-    "is_recurring": true,
-    "cycle_days": 30,
-    "start_date": "2023-01-01"
-  }'
-```
+1. **Backup your database**
 
-### Add a continuous expense
+   ```bash
+   python scripts/migrate_db.py --backup-only
+   ```
 
-```bash
-curl -X POST http://127.0.0.1:5000/api/transactions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-token>" \
-  -d '{
-    "amount": 6000,
-    "transaction_type": "expense",
-    "description": "10-day trip expenses",
-    "duration_days": 10,
-    "start_date": "2023-01-15"
-  }'
-```
+2. **Run migration script**
 
-### Get day capacity for a specific date
+   ```bash
+   python scripts/migrate_db.py
+   ```
 
-```bash
-curl -X GET "http://127.0.0.1:5000/api/reports/day_capacity?date=2023-01-20" \
-  -H "Authorization: Bearer <your-token>"
-```
+   This will:
+   - Add the categories table
+   - Add category support to transactions
+   - Create default categories for existing users
 
-### Get summary for a date range
+## Design Decisions
 
-```bash
-curl -X GET "http://127.0.0.1:5000/api/reports/summary?start=2023-01-01&end=2023-01-31" \
-  -H "Authorization: Bearer <your-token>"
-```
+### SQLite Database
 
-## Security Notes
+We chose SQLite for its simplicity, portability, and zero-configuration setup. For personal finance tracking, SQLite provides sufficient performance while allowing the entire database to be stored in a single file.
 
-- Passwords are hashed using bcrypt
-- API endpoints are protected with JWT authentication
-- Set a strong SECRET_KEY in production using environment variables
+### Hybrid Property Calculations
 
-## Performance Considerations
+Balance and day capacity calculations are implemented as hybrid properties that execute the calculation logic at runtime rather than storing these values in the database. This approach:
 
-- Single-user response time is optimized for <500ms
-- Date range queries support up to 3 years of data
-- All amounts are stored with 2 decimal places precision
+- Ensures calculations are always current
+- Reduces database complexity
+- Avoids data synchronization issues
+
+### Category Implementation
+
+The category system was designed to be:
+
+1. **User-specific**: Each user has their own set of categories
+2. **Default-enabled**: New users get pre-populated categories
+3. **Flexible**: Categories can be added, renamed, or deleted
+4. **Transition-friendly**: Deleted categories' transactions are moved to "Other"
+
+## Security Considerations
+
+- **Password Storage**: Bcrypt hashing for secure password storage
+- **Token-based Authentication**: JWT with expiration for API security
+- **Token Verification**: Server-side validation of tokens
+- **SQL Injection Protection**: SQLAlchemy ORM prevents SQL injection
+- **Environment Variables**: Sensitive configs can be set via environment variables
+
+## Performance Optimization
+
+- **Database Indexing**: Strategic indexes on foreign keys and frequently queried columns
+- **Lazy Loading**: Relationships use lazy loading to improve query performance
+- **Query Optimization**: Filtered queries to minimize data transfer
+- **Calculation Caching**: Future optimization could include caching calculation results
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
