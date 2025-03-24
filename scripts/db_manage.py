@@ -9,23 +9,26 @@ import sqlite3
 import argparse
 import os
 import sys
-from pathlib import Path
 
 # Define paths
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = PROJECT_ROOT / "data.db"
-SQL_DIR = PROJECT_ROOT / "sql"
-CREATE_SQL_PATH = SQL_DIR / "create_tables.sql"
-DROP_SQL_PATH = SQL_DIR / "drop_tables.sql"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(PROJECT_ROOT, "data.db")
+SQL_DIR = os.path.join(PROJECT_ROOT, "sql")
+CREATE_SQL_PATH = os.path.join(SQL_DIR, "create_tables.sql")
+DROP_SQL_PATH = os.path.join(SQL_DIR, "drop_tables.sql")
 
 
 def read_sql_file(file_path):
     """Read SQL statements from a file."""
+    if not os.path.exists(file_path):
+        print(f"Error: SQL file not found at {file_path}")
+        sys.exit(1)
+
     try:
         with open(file_path, 'r') as file:
             return file.read()
-    except FileNotFoundError:
-        print(f"Error: SQL file not found at {file_path}")
+    except Exception as e:
+        print(f"Error reading SQL file: {e}")
         sys.exit(1)
 
 
@@ -50,6 +53,11 @@ def execute_sql(db_path, sql_statements):
 
 def create_tables(db_path):
     """Create database tables."""
+    if not os.path.exists(SQL_DIR):
+        print(f"Error: SQL directory not found at {SQL_DIR}")
+        print("Please create the sql directory and add create_tables.sql file")
+        sys.exit(1)
+
     sql = read_sql_file(CREATE_SQL_PATH)
     if execute_sql(db_path, sql):
         print(f"Tables created successfully in {db_path}")
@@ -61,6 +69,11 @@ def create_tables(db_path):
 
 def drop_tables(db_path):
     """Drop database tables."""
+    if not os.path.exists(SQL_DIR):
+        print(f"Error: SQL directory not found at {SQL_DIR}")
+        print("Please create the sql directory and add drop_tables.sql file")
+        sys.exit(1)
+
     sql = read_sql_file(DROP_SQL_PATH)
     if execute_sql(db_path, sql):
         print(f"Tables dropped successfully from {db_path}")
