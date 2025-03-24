@@ -88,45 +88,20 @@ function setupEventListeners() {
         });
     }
     
-    // Transaction modal checkboxes
-    const isRecurringCheck = document.getElementById('is-recurring');
-    if (isRecurringCheck) {
-        isRecurringCheck.addEventListener('change', () => {
-            const recurringOptions = document.getElementById('recurring-options');
-            recurringOptions.style.display = isRecurringCheck.checked ? 'block' : 'none';
-            
-            // Recurring income and continuous expense are mutually exclusive
-            if (isRecurringCheck.checked) {
-                const hasDurationCheck = document.getElementById('has-duration');
-                const durationOptions = document.getElementById('duration-options');
-                hasDurationCheck.checked = false;
-                durationOptions.style.display = 'none';
-            }
+    // Transaction mode radio buttons
+    const transactionModeRadios = document.querySelectorAll('input[name="transaction_mode"]');
+    if (transactionModeRadios.length) {
+        transactionModeRadios.forEach(radio => {
+            radio.addEventListener('change', updateTransactionModeOptions);
         });
     }
-    
-    const hasDurationCheck = document.getElementById('has-duration');
-    if (hasDurationCheck) {
-        hasDurationCheck.addEventListener('change', () => {
-            const durationOptions = document.getElementById('duration-options');
-            durationOptions.style.display = hasDurationCheck.checked ? 'block' : 'none';
-            
-            // Recurring income and continuous expense are mutually exclusive
-            if (hasDurationCheck.checked) {
-                const isRecurringCheck = document.getElementById('is-recurring');
-                const recurringOptions = document.getElementById('recurring-options');
-                isRecurringCheck.checked = false;
-                recurringOptions.style.display = 'none';
-            }
-        });
-    }
-    
+
     // Transaction form save button
     const saveTransactionBtn = document.getElementById('save-transaction-btn');
     if (saveTransactionBtn) {
         saveTransactionBtn.addEventListener('click', saveTransaction);
     }
-    
+
     // Details modal buttons
     const editTransactionBtn = document.getElementById('edit-transaction-btn');
     if (editTransactionBtn) {
@@ -136,7 +111,7 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     const deleteTransactionBtn = document.getElementById('delete-transaction-btn');
     if (deleteTransactionBtn) {
         deleteTransactionBtn.addEventListener('click', () => {
@@ -145,7 +120,7 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Modal close buttons
     const closeButtons = document.querySelectorAll('[data-dismiss="modal"]');
     closeButtons.forEach(button => {
@@ -154,7 +129,7 @@ function setupEventListeners() {
             closeModal(modal);
         });
     });
-    
+
     // Close modals when clicking outside
     window.addEventListener('click', (event) => {
         const modals = document.querySelectorAll('.modal');
@@ -167,17 +142,74 @@ function setupEventListeners() {
 }
 
 /**
+ * Update form fields based on selected transaction mode
+ */
+function updateTransactionModeOptions() {
+    const selectedMode = document.querySelector('input[name="transaction_mode"]:checked').value;
+    const recurringOptions = document.getElementById('recurring-options');
+    const durationOptions = document.getElementById('duration-options');
+    const transactionType = document.getElementById('transaction-type').value;
+
+    // Hide all options first
+    if (recurringOptions) recurringOptions.style.display = 'none';
+    if (durationOptions) durationOptions.style.display = 'none';
+
+    // Show relevant options based on mode and type
+    if (selectedMode === 'recurring') {
+        if (transactionType !== 'income') {
+            // If not income, switch to single mode
+            document.querySelector('input[value="single"]').checked = true;
+            return;
+        }
+
+        if (recurringOptions) recurringOptions.style.display = 'block';
+    }
+    else if (selectedMode === 'continuous') {
+        if (transactionType !== 'expense') {
+            // If not expense, switch to single mode
+            document.querySelector('input[value="single"]').checked = true;
+            return;
+        }
+
+        if (durationOptions) durationOptions.style.display = 'block';
+    }
+
+    // Update help text or visual indicators as needed
+    updateTransactionModeHelp(selectedMode);
+}
+
+/**
+ * Update help text for transaction modes
+ */
+function updateTransactionModeHelp(mode) {
+    const helpText = document.getElementById('transaction-mode-help');
+    if (!helpText) return;
+
+    switch (mode) {
+        case 'single':
+            helpText.textContent = 'Single transactions immediately impact your balance.';
+            break;
+        case 'recurring':
+            helpText.textContent = 'Recurring income contributes to your daily budget (amount ÷ cycle days).';
+            break;
+        case 'continuous':
+            helpText.textContent = 'Continuous expenses are spread over time, reducing your daily budget.';
+            break;
+    }
+}
+
+/**
  * Initialize date range filter with default values
  */
 function initializeDateRangeFilter() {
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
-    
+
     if (startDateInput && endDateInput) {
         // Set default range to current month
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        
+
         startDateInput.value = firstDay.toISOString().split('T')[0];
         endDateInput.value = today.toISOString().split('T')[0];
     }
@@ -190,7 +222,7 @@ async function loadCategories() {
     try {
         const result = await api.categories.getAll();
         categoriesData = result.categories || [];
-        
+
         // Populate category filter dropdown
         const categoryFilter = document.getElementById('category-filter');
         if (categoryFilter) {
@@ -202,7 +234,7 @@ async function loadCategories() {
                 { value: '', text: 'All Categories' }
             );
         }
-        
+
         // Populate transaction form category dropdown
         const categorySelect = document.getElementById('category');
         if (categorySelect) {
@@ -229,16 +261,16 @@ async function loadTransactions() {
         const loadingDiv = document.getElementById('transactions-loading');
         const tableContainer = document.getElementById('transactions-table').parentNode;
         const noTransactionsDiv = document.getElementById('no-transactions');
-        
+
         if (loadingDiv) loadingDiv.style.display = 'block';
         if (tableContainer) tableContainer.style.display = 'none';
         if (noTransactionsDiv) noTransactionsDiv.style.display = 'none';
-        
+
         // Get filter values
         const startDateInput = document.getElementById('start-date');
         const endDateInput = document.getElementById('end-date');
         const categoryFilter = document.getElementById('category-filter');
-        
+
         // Build filters
         const filters = {};
         if (startDateInput && startDateInput.value) {
@@ -250,21 +282,21 @@ async function loadTransactions() {
         if (categoryFilter && categoryFilter.value) {
             filters.category_id = categoryFilter.value;
         }
-        
+
         // Get transactions from API
         const result = await api.transactions.getAll(filters);
         allTransactions = result.transactions || [];
-        
+
         // Apply any additional client-side filters
         applyFilters();
-        
+
         // Hide loading state
         if (loadingDiv) loadingDiv.style.display = 'none';
-        
+
     } catch (error) {
         console.error('Error loading transactions:', error);
         utils.showNotification('Error loading transactions', 'error');
-        
+
         // Hide loading state
         const loadingDiv = document.getElementById('transactions-loading');
         if (loadingDiv) loadingDiv.style.display = 'none';
@@ -278,17 +310,17 @@ function applyFilters() {
     // Get filter values
     const typeFilter = document.getElementById('type-filter');
     const typeValue = typeFilter ? typeFilter.value : '';
-    
+
     // Filter transactions
     filteredTransactions = allTransactions.filter(transaction => {
         // Apply type filter
         if (typeValue && transaction.transaction_type !== typeValue) {
             return false;
         }
-        
+
         return true;
     });
-    
+
     // Apply sorting
     const sortSelect = document.getElementById('sort-by');
     if (sortSelect) {
@@ -297,10 +329,10 @@ function applyFilters() {
         // Default sort by date (newest first)
         sortTransactions('date-desc');
     }
-    
+
     // Reset to first page
     currentPage = 1;
-    
+
     // Render table
     renderTransactionsTable();
 }
@@ -313,26 +345,26 @@ function resetFilters() {
     const filterForm = document.getElementById('filter-form');
     if (filterForm) {
         filterForm.reset();
-        
+
         // Reset date range to current month
         const startDateInput = document.getElementById('start-date');
         const endDateInput = document.getElementById('end-date');
-        
+
         if (startDateInput && endDateInput) {
             const today = new Date();
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            
+
             startDateInput.value = firstDay.toISOString().split('T')[0];
             endDateInput.value = today.toISOString().split('T')[0];
         }
     }
-    
+
     // Reset sort to default
     const sortSelect = document.getElementById('sort-by');
     if (sortSelect) {
         sortSelect.value = 'date-desc';
     }
-    
+
     // Reload transactions
     loadTransactions();
 }
@@ -342,7 +374,7 @@ function resetFilters() {
  */
 function sortTransactions(sortBy) {
     if (!filteredTransactions) return;
-    
+
     switch (sortBy) {
         case 'date-desc':
             filteredTransactions.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
@@ -371,62 +403,67 @@ function renderTransactionsTable() {
     const tableContainer = tableBody ? tableBody.parentNode.parentNode : null;
     const paginationContainer = document.getElementById('pagination');
     const transactionsCount = document.getElementById('transactions-count');
-    
+
     if (!tableBody) return;
-    
+
     // Check if there are any transactions
     if (!filteredTransactions || filteredTransactions.length === 0) {
         // Show no transactions message
         tableContainer.style.display = 'none';
         noTransactionsDiv.style.display = 'block';
-        
+
         // Update count
         if (transactionsCount) {
             transactionsCount.textContent = '0';
         }
-        
+
         return;
     }
-    
+
     // Show table and hide no transactions message
     tableContainer.style.display = 'block';
     noTransactionsDiv.style.display = 'none';
-    
+
     // Update count
     if (transactionsCount) {
         transactionsCount.textContent = filteredTransactions.length.toString();
     }
-    
+
     // Calculate pagination
     const totalPages = Math.ceil(filteredTransactions.length / PAGE_SIZE);
     const startIndex = (currentPage - 1) * PAGE_SIZE;
     const endIndex = Math.min(startIndex + PAGE_SIZE, filteredTransactions.length);
     const currentPageTransactions = filteredTransactions.slice(startIndex, endIndex);
-    
+
     // Clear table
     tableBody.innerHTML = '';
-    
+
     // Add transactions to table
     currentPageTransactions.forEach(transaction => {
         const row = document.createElement('tr');
-        
+
         // Format amount with class based on type
         const amountClass = transaction.transaction_type === 'income' ? 'amount-positive' : 'amount-negative';
         const typeClass = transaction.transaction_type === 'income' ? 'transaction-type-income' : 'transaction-type-expense';
-        
-        // Format details
+
+        // Format details based on transaction mode
         let detailsText = '';
-        if (transaction.is_recurring) {
+        let modeIcon = '';
+
+        if (transaction.transaction_mode === 'recurring') {
             detailsText = `Recurring (${transaction.cycle_days} days)`;
-        } else if (transaction.duration_days) {
-            detailsText = `Duration: ${transaction.duration_days} days`;
+            modeIcon = '<i class="fas fa-sync-alt text-primary" title="Recurring Income"></i> ';
+        } else if (transaction.transaction_mode === 'continuous') {
+            detailsText = `Continuous (${transaction.duration_days} days)`;
+            modeIcon = '<i class="fas fa-hourglass-half text-info" title="Continuous Expense"></i> ';
         } else {
             detailsText = 'Single transaction';
+            modeIcon = '<i class="fas fa-coins" title="Single Transaction"></i> ';
         }
-        
+
         row.innerHTML = `
             <td>${utils.formatDate(transaction.start_date)}</td>
-            <td>${transaction.description}</td>
+            <td>${modeIcon}${transaction.description}</td>
             <td>${transaction.category_name || 'Uncategorized'}</td>
             <td><span class="transaction-type ${typeClass}">${transaction.transaction_type}</span></td>
             <td class="text-right"><span class="amount ${amountClass}">${utils.formatCurrency(transaction.amount)}</span></td>
@@ -443,10 +480,10 @@ function renderTransactionsTable() {
                 </button>
             </td>
         `;
-        
+
         tableBody.appendChild(row);
     });
-    
+
     // Add event listeners to action buttons
     const viewButtons = tableBody.querySelectorAll('.view-transaction-btn');
     viewButtons.forEach(button => {
@@ -455,7 +492,7 @@ function renderTransactionsTable() {
             viewTransactionDetails(transactionId);
         });
     });
-    
+
     const editButtons = tableBody.querySelectorAll('.edit-transaction-btn');
     editButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -463,7 +500,7 @@ function renderTransactionsTable() {
             editTransaction(transactionId);
         });
     });
-    
+
     const deleteButtons = tableBody.querySelectorAll('.delete-transaction-btn');
     deleteButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -471,7 +508,7 @@ function renderTransactionsTable() {
             confirmDeleteTransaction(transactionId);
         });
     });
-    
+
     // Render pagination
     renderPagination(totalPages);
 }
@@ -482,145 +519,145 @@ function renderTransactionsTable() {
 function renderPagination(totalPages) {
     const paginationContainer = document.getElementById('pagination');
     if (!paginationContainer) return;
-    
+
     // Clear pagination
     paginationContainer.innerHTML = '';
-    
+
     // Don't show pagination if there's only one page
     if (totalPages <= 1) return;
-    
+
     // Previous button
     const prevLi = document.createElement('li');
     prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-    
+
     const prevLink = document.createElement('a');
     prevLink.className = 'page-link';
     prevLink.href = '#';
     prevLink.setAttribute('aria-label', 'Previous');
     prevLink.innerHTML = '<i class="fas fa-chevron-left"></i>';
-    
+
     if (currentPage > 1) {
         prevLink.addEventListener('click', (e) => {
             e.preventDefault();
             goToPage(currentPage - 1);
         });
     }
-    
+
     prevLi.appendChild(prevLink);
     paginationContainer.appendChild(prevLi);
-    
+
     // Page numbers
     const maxPages = 5; // Maximum number of page links to show
     let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
     let endPage = Math.min(totalPages, startPage + maxPages - 1);
-    
+
     // Adjust start page if end page is at maximum
     if (endPage === totalPages) {
         startPage = Math.max(1, endPage - maxPages + 1);
     }
-    
+
     // Add first page if not visible
     if (startPage > 1) {
         const firstLi = document.createElement('li');
         firstLi.className = 'page-item';
-        
+
         const firstLink = document.createElement('a');
         firstLink.className = 'page-link';
         firstLink.href = '#';
         firstLink.textContent = '1';
-        
+
         firstLink.addEventListener('click', (e) => {
             e.preventDefault();
             goToPage(1);
         });
-        
+
         firstLi.appendChild(firstLink);
         paginationContainer.appendChild(firstLi);
-        
+
         // Add ellipsis if there's a gap
         if (startPage > 2) {
             const ellipsisLi = document.createElement('li');
             ellipsisLi.className = 'page-item disabled';
-            
+
             const ellipsisSpan = document.createElement('span');
             ellipsisSpan.className = 'page-link';
             ellipsisSpan.innerHTML = '&hellip;';
-            
+
             ellipsisLi.appendChild(ellipsisSpan);
             paginationContainer.appendChild(ellipsisLi);
         }
     }
-    
+
     // Page numbers
     for (let i = startPage; i <= endPage; i++) {
         const pageLi = document.createElement('li');
         pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
-        
+
         const pageLink = document.createElement('a');
         pageLink.className = 'page-link';
         pageLink.href = '#';
         pageLink.textContent = i.toString();
-        
+
         if (i !== currentPage) {
             pageLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 goToPage(i);
             });
         }
-        
+
         pageLi.appendChild(pageLink);
         paginationContainer.appendChild(pageLi);
     }
-    
+
     // Add last page if not visible
     if (endPage < totalPages) {
         // Add ellipsis if there's a gap
         if (endPage < totalPages - 1) {
             const ellipsisLi = document.createElement('li');
             ellipsisLi.className = 'page-item disabled';
-            
+
             const ellipsisSpan = document.createElement('span');
             ellipsisSpan.className = 'page-link';
             ellipsisSpan.innerHTML = '&hellip;';
-            
+
             ellipsisLi.appendChild(ellipsisSpan);
             paginationContainer.appendChild(ellipsisLi);
         }
-        
+
         const lastLi = document.createElement('li');
         lastLi.className = 'page-item';
-        
+
         const lastLink = document.createElement('a');
         lastLink.className = 'page-link';
         lastLink.href = '#';
         lastLink.textContent = totalPages.toString();
-        
+
         lastLink.addEventListener('click', (e) => {
             e.preventDefault();
             goToPage(totalPages);
         });
-        
+
         lastLi.appendChild(lastLink);
         paginationContainer.appendChild(lastLi);
     }
-    
+
     // Next button
     const nextLi = document.createElement('li');
     nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-    
+
     const nextLink = document.createElement('a');
     nextLink.className = 'page-link';
     nextLink.href = '#';
     nextLink.setAttribute('aria-label', 'Next');
     nextLink.innerHTML = '<i class="fas fa-chevron-right"></i>';
-    
+
     if (currentPage < totalPages) {
         nextLink.addEventListener('click', (e) => {
             e.preventDefault();
             goToPage(currentPage + 1);
         });
     }
-    
+
     nextLi.appendChild(nextLink);
     paginationContainer.appendChild(nextLi);
 }
@@ -631,7 +668,7 @@ function renderPagination(totalPages) {
 function goToPage(page) {
     currentPage = page;
     renderTransactionsTable();
-    
+
     // Scroll to top of table
     const tableContainer = document.querySelector('.table-container');
     if (tableContainer) {
@@ -647,28 +684,28 @@ function exportTransactionsCSV() {
         utils.showNotification('No transactions to export', 'warning');
         return;
     }
-    
+
     // Create CSV content
-    let csvContent = 'Date,Description,Category,Type,Amount,Details\n';
-    
+    let csvContent = 'Date,Description,Category,Type,Mode,Amount,Details\n';
+
     filteredTransactions.forEach(transaction => {
         // Format amount
         const amount = transaction.amount.toFixed(2);
-        
+
         // Format details
         let details = '';
-        if (transaction.is_recurring) {
+        if (transaction.transaction_mode === 'recurring') {
             details = `Recurring (${transaction.cycle_days} days)`;
-        } else if (transaction.duration_days) {
-            details = `Duration: ${transaction.duration_days} days`;
+        } else if (transaction.transaction_mode === 'continuous') {
+            details = `Continuous (${transaction.duration_days} days)`;
         } else {
             details = 'Single transaction';
         }
-        
+
         // Add row to CSV
-        csvContent += `${transaction.start_date},${transaction.description.replace(/,/g, ' ')},${(transaction.category_name || 'Uncategorized').replace(/,/g, ' ')},${transaction.transaction_type},${amount},"${details}"\n`;
+        csvContent += `${transaction.start_date},${transaction.description.replace(/,/g, ' ')},${(transaction.category_name || 'Uncategorized').replace(/,/g, ' ')},${transaction.transaction_type},${transaction.transaction_mode},${amount},"${details}"\n`;
     });
-    
+
     // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -679,7 +716,7 @@ function exportTransactionsCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     utils.showNotification('Transactions exported successfully', 'success');
 }
 
@@ -690,7 +727,7 @@ async function viewTransactionDetails(transactionId) {
     try {
         // Find transaction in filtered transactions
         const transaction = filteredTransactions.find(t => t.id.toString() === transactionId.toString());
-        
+
         if (!transaction) {
             // If not found in filtered, get from API
             const response = await api.transactions.getById(transactionId);
@@ -698,58 +735,65 @@ async function viewTransactionDetails(transactionId) {
         } else {
             currentTransaction = transaction;
         }
-        
+
         // Populate details modal
         const modal = document.getElementById('transaction-details-modal');
-        
+
         // Amount
         const amountElement = document.getElementById('detail-amount');
         const amountClass = currentTransaction.transaction_type === 'income' ? 'amount-positive' : 'amount-negative';
         amountElement.textContent = utils.formatCurrency(currentTransaction.amount);
         amountElement.className = `transaction-detail-value ${amountClass}`;
-        
+
         // Type
         const typeElement = document.getElementById('detail-type');
         typeElement.textContent = currentTransaction.transaction_type === 'income' ? 'Income' : 'Expense';
-        
+
+        // Transaction Mode
+        const modeElement = document.getElementById('detail-mode');
+        if (modeElement) {
+            const modeText = currentTransaction.transaction_mode.charAt(0).toUpperCase() + currentTransaction.transaction_mode.slice(1);
+            modeElement.textContent = modeText;
+        }
+
         // Other fields
         document.getElementById('detail-description').textContent = currentTransaction.description;
         document.getElementById('detail-category').textContent = currentTransaction.category_name || 'Uncategorized';
         document.getElementById('detail-date').textContent = utils.formatDate(currentTransaction.start_date);
         document.getElementById('detail-created-at').textContent = utils.formatDateTime(currentTransaction.created_at);
-        
+
         // Recurring details
         const recurringSection = document.getElementById('detail-recurring-section');
-        if (currentTransaction.is_recurring) {
+        if (currentTransaction.transaction_mode === 'recurring') {
             recurringSection.style.display = 'block';
             document.getElementById('detail-cycle').textContent = `${currentTransaction.cycle_days} days`;
-            
+
             // Calculate daily allocation
             const dailyAllocation = currentTransaction.amount / currentTransaction.cycle_days;
             document.getElementById('detail-daily-allocation').textContent = `${utils.formatCurrency(dailyAllocation)}/day`;
         } else {
             recurringSection.style.display = 'none';
         }
-        
+
         // Duration details
         const durationSection = document.getElementById('detail-duration-section');
-        if (currentTransaction.duration_days) {
+        if (currentTransaction.transaction_mode === 'continuous') {
             durationSection.style.display = 'block';
             document.getElementById('detail-duration').textContent = `${currentTransaction.duration_days} days`;
-            
+
             // Calculate end date
             const startDate = new Date(currentTransaction.start_date);
             const endDate = new Date(startDate);
             endDate.setDate(startDate.getDate() + currentTransaction.duration_days);
             document.getElementById('detail-end-date').textContent = utils.formatDate(endDate);
-            
+
             // Calculate daily allocation
             const dailyAllocation = currentTransaction.amount / currentTransaction.duration_days;
             document.getElementById('detail-expense-allocation').textContent = `${utils.formatCurrency(dailyAllocation)}/day`;
         } else {
             durationSection.style.display = 'none';
         }
-        
+
         // Show modal
         modal.style.display = 'block';
         setTimeout(() => {
@@ -767,7 +811,7 @@ async function viewTransactionDetails(transactionId) {
 function editTransaction(transactionId) {
     // Find transaction in filtered transactions
     const transaction = filteredTransactions.find(t => t.id.toString() === transactionId.toString());
-    
+
     if (transaction) {
         openEditTransactionModal(transaction);
     } else {
@@ -782,7 +826,7 @@ function openEditTransactionModal(transaction) {
     // Close details modal if open
     const detailsModal = document.getElementById('transaction-details-modal');
     closeModal(detailsModal);
-    
+
     const modal = document.getElementById('transaction-modal');
     const modalTitle = document.getElementById('transaction-modal-title');
     const form = document.getElementById('transaction-form');
@@ -792,23 +836,35 @@ function openEditTransactionModal(transaction) {
     const descriptionInput = document.getElementById('description');
     const categorySelect = document.getElementById('category');
     const startDateInput = document.getElementById('start-date');
-    const isRecurringCheck = document.getElementById('is-recurring');
-    const cycleInput = document.getElementById('cycle-days');
-    const recurringOptions = document.getElementById('recurring-options');
-    const hasDurationCheck = document.getElementById('has-duration');
-    const durationInput = document.getElementById('duration-days');
-    const durationOptions = document.getElementById('duration-options');
-    
+
     // Set title and type
     modalTitle.textContent = `Edit ${transaction.transaction_type === 'income' ? 'Income' : 'Expense'}`;
-    
+
     // Populate form
     idInput.value = transaction.id;
     typeInput.value = transaction.transaction_type;
     amountInput.value = transaction.amount;
     descriptionInput.value = transaction.description;
     startDateInput.value = transaction.start_date;
-    
+
+    // Set transaction mode
+    const modeRadio = document.querySelector(`input[name="transaction_mode"][value="${transaction.transaction_mode}"]`);
+    if (modeRadio) {
+        modeRadio.checked = true;
+    }
+
+    // Set up mode options
+    if (transaction.transaction_mode === 'recurring') {
+        const cycleInput = document.getElementById('cycle-days');
+        if (cycleInput) cycleInput.value = transaction.cycle_days;
+    } else if (transaction.transaction_mode === 'continuous') {
+        const durationInput = document.getElementById('duration-days');
+        if (durationInput) durationInput.value = transaction.duration_days;
+    }
+
+    // Update mode options visibility
+    updateTransactionModeOptions();
+
     // Set category
     if (categorySelect) {
         utils.populateSelect(
@@ -818,35 +874,12 @@ function openEditTransactionModal(transaction) {
             'name',
             { value: '', text: 'Select a category', disabled: true, selected: !transaction.category_id }
         );
-        
+
         if (transaction.category_id) {
             categorySelect.value = transaction.category_id;
         }
     }
-    
-    // Set recurring options
-    isRecurringCheck.checked = transaction.is_recurring;
-    recurringOptions.style.display = transaction.is_recurring ? 'block' : 'none';
-    if (transaction.is_recurring && transaction.cycle_days) {
-        cycleInput.value = transaction.cycle_days;
-    }
-    
-    // Set duration options
-    hasDurationCheck.checked = !!transaction.duration_days;
-    durationOptions.style.display = transaction.duration_days ? 'block' : 'none';
-    if (transaction.duration_days) {
-        durationInput.value = transaction.duration_days;
-    }
-    
-    // Show/hide appropriate checkboxes based on type
-    if (transaction.transaction_type === 'income') {
-        isRecurringCheck.parentNode.style.display = 'block'; // Show recurring option for income
-        hasDurationCheck.parentNode.style.display = 'none'; // Hide duration option for income
-    } else {
-        isRecurringCheck.parentNode.style.display = 'none'; // Hide recurring option for expense
-        hasDurationCheck.parentNode.style.display = 'block'; // Show duration option for expense
-    }
-    
+
     // Show modal
     modal.style.display = 'block';
     setTimeout(() => {
@@ -867,35 +900,27 @@ function openTransactionModal(type) {
     const descriptionInput = document.getElementById('description');
     const categorySelect = document.getElementById('category');
     const startDateInput = document.getElementById('start-date');
-    const isRecurringCheck = document.getElementById('is-recurring');
-    const recurringOptions = document.getElementById('recurring-options');
-    const hasDurationCheck = document.getElementById('has-duration');
-    const durationOptions = document.getElementById('duration-options');
-    
+
     // Reset form
     form.reset();
-    
+
     // Set title and type
     modalTitle.textContent = type === 'income' ? 'Add Income' : 'Add Expense';
     idInput.value = '';
     typeInput.value = type;
-    
+
     // Set today's date
     startDateInput.value = utils.getCurrentDateString();
-    
-    // Hide recurring and duration options
-    recurringOptions.style.display = 'none';
-    durationOptions.style.display = 'none';
-    
-    // Show the appropriate checkboxes based on type
-    if (type === 'income') {
-        isRecurringCheck.parentNode.style.display = 'block'; // Show recurring option for income
-        hasDurationCheck.parentNode.style.display = 'none'; // Hide duration option for income
-    } else {
-        isRecurringCheck.parentNode.style.display = 'none'; // Hide recurring option for expense
-        hasDurationCheck.parentNode.style.display = 'block'; // Show duration option for expense
+
+    // Default to single transaction mode
+    const singleModeRadio = document.querySelector('input[name="transaction_mode"][value="single"]');
+    if (singleModeRadio) {
+        singleModeRadio.checked = true;
     }
-    
+
+    // Update help text for transaction mode
+    updateTransactionModeHelp('single');
+
     // Reset and populate category dropdown
     if (categorySelect) {
         utils.populateSelect(
@@ -906,13 +931,16 @@ function openTransactionModal(type) {
             { value: '', text: 'Select a category', disabled: true, selected: true }
         );
     }
-    
+
+    // Update form for transaction type
+    updateTransactionModeOptions();
+
     // Show modal
     modal.style.display = 'block';
     setTimeout(() => {
         modal.classList.add('show');
     }, 10);
-    
+
     // Focus amount input
     amountInput.focus();
 }
@@ -924,36 +952,44 @@ async function saveTransaction() {
     const form = document.getElementById('transaction-form');
     const modal = document.getElementById('transaction-modal');
     const idInput = document.getElementById('transaction-id');
-    
+
     // Validate form
     if (!utils.validateForm(form)) {
         return;
     }
-    
+
     // Get form data
     const formData = utils.serializeForm(form);
-    
+
+    // Get selected transaction mode
+    const transactionMode = document.querySelector('input[name="transaction_mode"]:checked').value;
+
     // Prepare transaction data
     const transactionData = {
         amount: parseFloat(formData.amount),
         description: formData.description,
         category_id: formData.category_id || null,
         transaction_type: formData.transaction_type,
-        start_date: formData.start_date,
-        is_recurring: formData.is_recurring === 'on',
-        cycle_days: formData.is_recurring === 'on' ? parseInt(formData.cycle_days) : null,
-        duration_days: formData.has_duration === 'on' ? parseInt(formData.duration_days) : null
+        transaction_mode: transactionMode,
+        start_date: formData.start_date
     };
-    
+
+    // Add mode-specific fields
+    if (transactionMode === 'recurring') {
+        transactionData.cycle_days = parseInt(formData.cycle_days);
+    } else if (transactionMode === 'continuous') {
+        transactionData.duration_days = parseInt(formData.duration_days);
+    }
+
     try {
         // Show loading state
         const saveButton = document.getElementById('save-transaction-btn');
         const originalText = saveButton.textContent;
         saveButton.disabled = true;
         saveButton.innerHTML = '<span class="loading"></span> Saving...';
-        
+
         let response;
-        
+
         if (idInput.value) {
             // Update existing transaction
             response = await api.transactions.update(idInput.value, transactionData);
@@ -963,13 +999,13 @@ async function saveTransaction() {
             response = await api.transactions.create(transactionData);
             utils.showNotification('Transaction created successfully', 'success');
         }
-        
+
         // Close modal
         closeModal(modal);
-        
+
         // Reload transactions
         loadTransactions();
-        
+
     } catch (error) {
         // Show error message
         utils.showNotification(error.message || 'Error saving transaction', 'error');
@@ -988,7 +1024,7 @@ function confirmDeleteTransaction(transactionId) {
     if (typeof transactionId === 'object' && transactionId.id) {
         transactionId = transactionId.id;
     }
-    
+
     if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
         deleteTransaction(transactionId);
     }
@@ -1002,16 +1038,16 @@ async function deleteTransaction(transactionId) {
         // Close any open modals
         const detailsModal = document.getElementById('transaction-details-modal');
         closeModal(detailsModal);
-        
+
         // Show loading overlay
         showPageLoading(true);
-        
+
         // Delete transaction
         const response = await api.transactions.delete(transactionId);
-        
+
         // Show success message
         utils.showNotification('Transaction deleted successfully', 'success');
-        
+
         // Reload transactions
         loadTransactions();
     } catch (error) {
@@ -1028,7 +1064,7 @@ async function deleteTransaction(transactionId) {
  */
 function closeModal(modal) {
     if (!modal) return;
-    
+
     modal.classList.remove('show');
     setTimeout(() => {
         modal.style.display = 'none';
@@ -1053,7 +1089,7 @@ function showPageLoading(show) {
             `;
             document.body.appendChild(overlay);
         }
-        
+
         // Show overlay
         setTimeout(() => {
             overlay.classList.add('active');

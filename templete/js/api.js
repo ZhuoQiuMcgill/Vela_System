@@ -238,14 +238,30 @@ const transactions = {
     // Create a new transaction
     create: async (transactionData) => {
         try {
+            // Determine transaction mode if not explicitly set
+            if (!transactionData.transaction_mode) {
+                if (transactionData.transaction_type === 'income' && transactionData.is_recurring) {
+                    transactionData.transaction_mode = 'recurring';
+                } else if (transactionData.transaction_type === 'expense' && transactionData.duration_days) {
+                    transactionData.transaction_mode = 'continuous';
+                } else {
+                    transactionData.transaction_mode = 'single';
+                }
+            }
+
+            // Clean up legacy fields that are now represented by transaction_mode
+            if (transactionData.transaction_mode !== 'recurring') {
+                delete transactionData.is_recurring;
+            }
+
             const response = await fetch(`${API_BASE_URL}/transactions`, {
                 method: 'POST',
                 headers: createHeaders(),
                 body: JSON.stringify(transactionData)
             });
-            
+
             const data = await handleResponse(response);
-            
+
             // Update user balances from response
             if (data.current_total_balance !== undefined && data.long_term_balance !== undefined) {
                 auth.updateUserData({
@@ -253,25 +269,32 @@ const transactions = {
                     long_term_balance: data.long_term_balance
                 });
             }
-            
+
             return data;
         } catch (error) {
             console.error('Create transaction error:', error);
             throw error;
         }
     },
-    
+
     // Update a transaction
     update: async (transactionId, transactionData) => {
         try {
+            // Determine transaction mode if not explicitly set
+            if (transactionData.is_recurring && !transactionData.transaction_mode && transactionData.transaction_type !== 'expense') {
+                transactionData.transaction_mode = 'recurring';
+            } else if (transactionData.duration_days && !transactionData.transaction_mode && transactionData.transaction_type !== 'income') {
+                transactionData.transaction_mode = 'continuous';
+            }
+
             const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
                 method: 'PUT',
                 headers: createHeaders(),
                 body: JSON.stringify(transactionData)
             });
-            
+
             const data = await handleResponse(response);
-            
+
             // Update user balances from response
             if (data.current_total_balance !== undefined && data.long_term_balance !== undefined) {
                 auth.updateUserData({
@@ -279,14 +302,14 @@ const transactions = {
                     long_term_balance: data.long_term_balance
                 });
             }
-            
+
             return data;
         } catch (error) {
             console.error('Update transaction error:', error);
             throw error;
         }
     },
-    
+
     // Delete a transaction
     delete: async (transactionId) => {
         try {
@@ -294,9 +317,9 @@ const transactions = {
                 method: 'DELETE',
                 headers: createHeaders()
             });
-            
+
             const data = await handleResponse(response);
-            
+
             // Update user balances from response
             if (data.current_total_balance !== undefined && data.long_term_balance !== undefined) {
                 auth.updateUserData({
@@ -304,14 +327,14 @@ const transactions = {
                     long_term_balance: data.long_term_balance
                 });
             }
-            
+
             return data;
         } catch (error) {
             console.error('Delete transaction error:', error);
             throw error;
         }
     },
-    
+
     // Update transaction category
     updateCategory: async (transactionId, categoryId) => {
         try {
@@ -320,7 +343,7 @@ const transactions = {
                 headers: createHeaders(),
                 body: JSON.stringify({ category_id: categoryId })
             });
-            
+
             return handleResponse(response);
         } catch (error) {
             console.error('Update transaction category error:', error);
@@ -337,14 +360,14 @@ const reports = {
     getDayCapacity: async (date = null) => {
         try {
             const queryParams = date ? `?date=${date}` : '';
-            
+
             const response = await fetch(`${API_BASE_URL}/reports/day_capacity${queryParams}`, {
                 method: 'GET',
                 headers: createHeaders()
             });
-            
+
             const data = await handleResponse(response);
-            
+
             // Update user balances from response
             if (data.current_total_balance !== undefined && data.long_term_balance !== undefined) {
                 auth.updateUserData({
@@ -352,28 +375,28 @@ const reports = {
                     long_term_balance: data.long_term_balance
                 });
             }
-            
+
             return data;
         } catch (error) {
             console.error('Get day capacity error:', error);
             throw error;
         }
     },
-    
+
     // Get summary report for a date range
     getSummary: async (startDate, endDate) => {
         try {
             if (!startDate || !endDate) {
                 throw new Error('Start and end dates are required');
             }
-            
+
             const response = await fetch(`${API_BASE_URL}/reports/summary?start=${startDate}&end=${endDate}`, {
                 method: 'GET',
                 headers: createHeaders()
             });
-            
+
             const data = await handleResponse(response);
-            
+
             // Update user balances from response
             if (data.current_total_balance !== undefined && data.long_term_balance !== undefined) {
                 auth.updateUserData({
@@ -381,43 +404,43 @@ const reports = {
                     long_term_balance: data.long_term_balance
                 });
             }
-            
+
             return data;
         } catch (error) {
             console.error('Get summary error:', error);
             throw error;
         }
     },
-    
+
     // Get daily category report
     getDailyCategoryReport: async (date = null) => {
         try {
             const queryParams = date ? `?date=${date}` : '';
-            
+
             const response = await fetch(`${API_BASE_URL}/reports/categories/daily${queryParams}`, {
                 method: 'GET',
                 headers: createHeaders()
             });
-            
+
             return handleResponse(response);
         } catch (error) {
             console.error('Get daily category report error:', error);
             throw error;
         }
     },
-    
+
     // Get monthly category report
     getMonthlyCategoryReport: async (year, month) => {
         try {
             if (!year || !month) {
                 throw new Error('Year and month are required');
             }
-            
+
             const response = await fetch(`${API_BASE_URL}/reports/categories/monthly?year=${year}&month=${month}`, {
                 method: 'GET',
                 headers: createHeaders()
             });
-            
+
             return handleResponse(response);
         } catch (error) {
             console.error('Get monthly category report error:', error);

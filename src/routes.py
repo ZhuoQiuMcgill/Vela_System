@@ -238,6 +238,26 @@ def create_transaction(current_user):
     except ValueError:
         return jsonify({'message': 'Invalid transaction type'}), 400
 
+    # Get transaction mode (single, recurring, or continuous)
+    transaction_mode = data.get('transaction_mode', 'single')
+
+    # Validate the combination of transaction type and mode
+    if transaction_mode not in ['single', 'recurring', 'continuous']:
+        return jsonify({'message': 'Invalid transaction mode. Must be "single", "recurring", or "continuous"'}), 400
+
+    if transaction_mode == 'recurring' and transaction_type != TransactionType.INCOME:
+        return jsonify({'message': 'Only income transactions can be recurring'}), 400
+
+    if transaction_mode == 'continuous' and transaction_type != TransactionType.EXPENSE:
+        return jsonify({'message': 'Only expense transactions can be continuous'}), 400
+
+    # Validate required fields based on transaction mode
+    if transaction_mode == 'recurring' and not data.get('cycle_days'):
+        return jsonify({'message': 'Cycle days required for recurring transactions'}), 400
+
+    if transaction_mode == 'continuous' and not data.get('duration_days'):
+        return jsonify({'message': 'Duration days required for continuous transactions'}), 400
+
     # Validate category if provided
     category_id = data.get('category_id')
     if category_id:
@@ -252,14 +272,14 @@ def create_transaction(current_user):
         amount=float(data['amount']),
         transaction_type=transaction_type,
         description=data.get('description', ''),
-        is_recurring=data.get('is_recurring', False),
-        cycle_days=data.get('cycle_days'),
-        duration_days=data.get('duration_days'),
+        is_recurring=transaction_mode == 'recurring',
+        cycle_days=data.get('cycle_days') if transaction_mode == 'recurring' else None,
+        duration_days=data.get('duration_days') if transaction_mode == 'continuous' else None,
         start_date=datetime.strptime(data.get('start_date', datetime.utcnow().strftime('%Y-%m-%d')), '%Y-%m-%d').date()
     )
 
     # Calculate end_date for continuous expenses
-    if new_transaction.duration_days:
+    if transaction_mode == 'continuous' and new_transaction.duration_days:
         new_transaction.end_date = new_transaction.start_date + timedelta(days=new_transaction.duration_days)
 
     db.session.add(new_transaction)
@@ -305,10 +325,19 @@ def get_transactions(current_user):
     result = []
     for t in transactions:
         category_name = t.category.name if t.category else None
+
+        # Determine transaction mode
+        transaction_mode = "single"
+        if t.is_recurring:
+            transaction_mode = "recurring"
+        elif t.duration_days:
+            transaction_mode = "continuous"
+
         result.append({
             'id': t.id,
             'amount': t.amount,
             'transaction_type': t.transaction_type.value,
+            'transaction_mode': transaction_mode,
             'category_id': t.category_id,
             'category_name': category_name,
             'description': t.description,
@@ -327,9 +356,9 @@ def get_transactions(current_user):
     }), 200
 
 
-@api.route('/transactions/<int:transaction_id>', methods=['GET', 'PUT', 'DELETE'])
+@api.route('/transactions/<int:transaction_id>', methods=['GET'])
 @token_required
-def transaction_operations(current_user, transaction_id):
+def get_transaction(current_user, transaction_id):
     transaction = Transaction.query.filter_by(
         id=transaction_id,
         user_id=current_user.id
@@ -338,98 +367,188 @@ def transaction_operations(current_user, transaction_id):
     if not transaction:
         return jsonify({'message': 'Transaction not found'}), 404
 
-    # GET operation
-    if request.method == 'GET':
-        category_name = transaction.category.name if transaction.category else None
-        result = {
-            'id': transaction.id,
-            'amount': transaction.amount,
-            'transaction_type': transaction.transaction_type.value,
-            'category_id': transaction.category_id,
-            'category_name': category_name,
-            'description': transaction.description,
-            'created_at': transaction.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'start_date': transaction.start_date.strftime('%Y-%m-%d'),
-            'end_date': transaction.end_date.strftime('%Y-%m-%d') if transaction.end_date else None,
-            'is_recurring': transaction.is_recurring,
-            'cycle_days': transaction.cycle_days,
-            'duration_days': transaction.duration_days
-        }
-        return jsonify(result), 200
+    # Determine transaction mode
+    transaction_mode = "single"
+    if transaction.is_recurring:
+        transaction_mode = "recurring"
+    elif transaction.duration_days:
+        transaction_mode = "continuous"
 
-    # PUT operation
-    elif request.method == 'PUT':
-        data = request.get_json()
+    category_name = transaction.category.name if transaction.category else None
+    result = {
+        'id': transaction.id,
+        'amount': transaction.amount,
+        'transaction_type': transaction.transaction_type.value,
+        'transaction_mode': transaction_mode,
+        'category_id': transaction.category_id,
+        'category_name': category_name,
+        'description': transaction.description,
+        'created_at': transaction.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'start_date': transaction.start_date.strftime('%Y-%m-%d'),
+        'end_date': transaction.end_date.strftime('%Y-%m-%d') if transaction.end_date else None,
+        'is_recurring': transaction.is_recurring,
+        'cycle_days': transaction.cycle_days,
+        'duration_days': transaction.duration_days
+    }
 
-        if 'amount' in data:
-            transaction.amount = float(data['amount'])
+    return jsonify(result), 200
 
+
+@api.route('/transactions/<int:transaction_id>', methods=['PUT'])
+@token_required
+def update_transaction(current_user, transaction_id):
+    transaction = Transaction.query.filter_by(
+        id=transaction_id,
+        user_id=current_user.id
+    ).first()
+
+    if not transaction:
+        return jsonify({'message': 'Transaction not found'}), 404
+
+    data = request.get_json()
+
+    # Check if transaction mode is being updated
+    if 'transaction_mode' in data:
+        transaction_mode = data['transaction_mode']
+
+        # Validate the transaction mode
+        if transaction_mode not in ['single', 'recurring', 'continuous']:
+            return jsonify({'message': 'Invalid transaction mode. Must be "single", "recurring", or "continuous"'}), 400
+
+        # Validate the combination of transaction type and mode
+        current_type = transaction.transaction_type
         if 'transaction_type' in data:
             try:
-                # Convert to lowercase for database compatibility
-                transaction_type_raw = data['transaction_type'].lower()
-                transaction.transaction_type = TransactionType(transaction_type_raw)
+                current_type = TransactionType(data['transaction_type'].lower())
             except ValueError:
                 return jsonify({'message': 'Invalid transaction type'}), 400
 
-        if 'category_id' in data:
-            category_id = data['category_id']
-            if category_id:
-                category = Category.query.filter_by(id=category_id, user_id=current_user.id).first()
-                if not category:
-                    return jsonify({'message': 'Category not found'}), 404
-                transaction.category_id = category_id
-            else:
-                transaction.category_id = None
+        if transaction_mode == 'recurring' and current_type != TransactionType.INCOME:
+            return jsonify({'message': 'Only income transactions can be recurring'}), 400
 
-        if 'description' in data:
-            transaction.description = data['description']
+        if transaction_mode == 'continuous' and current_type != TransactionType.EXPENSE:
+            return jsonify({'message': 'Only expense transactions can be continuous'}), 400
 
-        if 'is_recurring' in data:
-            transaction.is_recurring = data['is_recurring']
+        # Update transaction fields based on mode
+        transaction.is_recurring = (transaction_mode == 'recurring')
 
-        if 'cycle_days' in data:
+        if transaction_mode == 'single':
+            transaction.cycle_days = None
+            transaction.duration_days = None
+            transaction.end_date = None
+        elif transaction_mode == 'recurring':
+            if 'cycle_days' in data:
+                transaction.cycle_days = data['cycle_days']
+            elif not transaction.cycle_days:
+                return jsonify({'message': 'Cycle days required for recurring transactions'}), 400
+
+            transaction.duration_days = None
+            transaction.end_date = None
+        elif transaction_mode == 'continuous':
+            if 'duration_days' in data:
+                transaction.duration_days = data['duration_days']
+            elif not transaction.duration_days:
+                return jsonify({'message': 'Duration days required for continuous transactions'}), 400
+
+            transaction.cycle_days = None
+
+            # Update end date
+            if transaction.duration_days:
+                transaction.end_date = transaction.start_date + timedelta(days=transaction.duration_days)
+
+    # Update other fields if provided
+    if 'amount' in data:
+        transaction.amount = float(data['amount'])
+
+    if 'transaction_type' in data and 'transaction_mode' not in data:
+        try:
+            # Convert to lowercase for database compatibility
+            transaction_type_raw = data['transaction_type'].lower()
+            new_type = TransactionType(transaction_type_raw)
+
+            # Check if the new type is compatible with the current mode
+            if transaction.is_recurring and new_type != TransactionType.INCOME:
+                return jsonify({'message': 'Cannot change type to expense for recurring transactions'}), 400
+
+            if transaction.duration_days and new_type != TransactionType.EXPENSE:
+                return jsonify({'message': 'Cannot change type to income for continuous transactions'}), 400
+
+            transaction.transaction_type = new_type
+        except ValueError:
+            return jsonify({'message': 'Invalid transaction type'}), 400
+
+    if 'category_id' in data:
+        category_id = data['category_id']
+        if category_id:
+            category = Category.query.filter_by(id=category_id, user_id=current_user.id).first()
+            if not category:
+                return jsonify({'message': 'Category not found'}), 404
+            transaction.category_id = category_id
+        else:
+            transaction.category_id = None
+
+    if 'description' in data:
+        transaction.description = data['description']
+
+    # Update cycle_days or duration_days if provided (and not already handled by transaction_mode)
+    if 'cycle_days' in data and 'transaction_mode' not in data:
+        if transaction.is_recurring:
             transaction.cycle_days = data['cycle_days']
+        else:
+            return jsonify({'message': 'Cannot set cycle_days for non-recurring transactions'}), 400
 
-        if 'duration_days' in data:
+    if 'duration_days' in data and 'transaction_mode' not in data:
+        if not transaction.is_recurring and transaction.transaction_type == TransactionType.EXPENSE:
             transaction.duration_days = data['duration_days']
             # Update end_date if duration changes
             if transaction.duration_days:
                 transaction.end_date = transaction.start_date + timedelta(days=transaction.duration_days)
             else:
                 transaction.end_date = None
+        else:
+            return jsonify({'message': 'Cannot set duration_days for recurring or income transactions'}), 400
 
-        if 'start_date' in data:
-            transaction.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
-            # Update end_date if start_date changes
-            if transaction.duration_days:
-                transaction.end_date = transaction.start_date + timedelta(days=transaction.duration_days)
+    if 'start_date' in data:
+        transaction.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        # Update end_date if start_date changes and transaction has duration
+        if transaction.duration_days:
+            transaction.end_date = transaction.start_date + timedelta(days=transaction.duration_days)
 
-        try:
-            db.session.commit()
-            return jsonify({
-                'message': 'Transaction updated successfully',
-                'current_total_balance': current_user.current_total_balance,
-                'long_term_balance': current_user.long_term_balance
-            }), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'message': f'An error occurred: {str(e)}'}), 500
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Transaction updated successfully',
+            'current_total_balance': current_user.current_total_balance,
+            'long_term_balance': current_user.long_term_balance
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'An error occurred: {str(e)}'}), 500
 
-    # DELETE operation
-    elif request.method == 'DELETE':
-        db.session.delete(transaction)
 
-        try:
-            db.session.commit()
-            return jsonify({
-                'message': 'Transaction deleted successfully',
-                'current_total_balance': current_user.current_total_balance,
-                'long_term_balance': current_user.long_term_balance
-            }), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'message': f'An error occurred: {str(e)}'}), 500
+@api.route('/transactions/<int:transaction_id>', methods=['DELETE'])
+@token_required
+def delete_transaction(current_user, transaction_id):
+    transaction = Transaction.query.filter_by(
+        id=transaction_id,
+        user_id=current_user.id
+    ).first()
+
+    if not transaction:
+        return jsonify({'message': 'Transaction not found'}), 404
+
+    db.session.delete(transaction)
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Transaction deleted successfully',
+            'current_total_balance': current_user.current_total_balance,
+            'long_term_balance': current_user.long_term_balance
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'An error occurred: {str(e)}'}), 500
 
 
 # Update transaction category
@@ -602,6 +721,7 @@ def get_monthly_category_report(current_user):
         'total_income': stats['total_income'],
         'total_expense': stats['total_expense']
     }), 200
+
 
 # Add this to the routes.py file, right after the imports
 

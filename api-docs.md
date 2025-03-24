@@ -154,7 +154,15 @@ DELETE /categories/{category_id}
 
 ## Transactions
 
-### Create Transaction
+VELA SYSTEM supports three distinct transaction modes:
+
+### 1. Single Transactions
+
+Single transactions are one-time incomes or expenses that affect your balance immediately.
+
+- **Direct Impact**: Immediately adds to or subtracts from your current balance
+- **No Day Capacity Effect**: Does not affect your daily available budget
+- **Example**: One-time purchase, one-time income
 
 ```
 POST /transactions
@@ -163,41 +171,65 @@ POST /transactions
 **Request:**
 ```json
 {
-  "amount": 1000.00,
-  "transaction_type": "income",
-  "category_id": 1,
-  "description": "Freelance payment",
-  "is_recurring": false,
-  "start_date": "2024-01-15"
+  "amount": 100.00,
+  "transaction_type": "expense",
+  "transaction_mode": "single",
+  "category_id": 4,
+  "description": "Grocery shopping",
+  "start_date": "2023-01-15"
 }
 ```
 
-**For Recurring Income:**
+### 2. Recurring Income
+
+Recurring income represents regular income that is spread over a cycle period.
+
+- **Day Capacity Effect**: Contributes to your daily budget (amount ÷ cycle_days)
+- **Example**: Monthly salary providing a daily budget allocation
+
+```
+POST /transactions
+```
+
+**Request:**
 ```json
 {
   "amount": 3000.00,
   "transaction_type": "income",
+  "transaction_mode": "recurring",
+  "cycle_days": 30,
   "category_id": 1,
   "description": "Monthly Salary",
-  "is_recurring": true,
-  "cycle_days": 30,
-  "start_date": "2024-01-01"
+  "start_date": "2023-01-01"
 }
 ```
 
-**For Continuous Expense:**
+### 3. Continuous Expenses
+
+Continuous expenses are expenses that are distributed over time rather than impacting your balance all at once.
+
+- **Amortization**: Cost is spread over the specified duration
+- **Day Capacity Effect**: Reduces your daily budget (amount ÷ duration_days)
+- **Example**: Vacation expenses spread across trip duration, or spreading the cost of a large purchase over its useful life
+
+```
+POST /transactions
+```
+
+**Request:**
 ```json
 {
-  "amount": 1500.00,
+  "amount": 1200.00,
   "transaction_type": "expense",
-  "category_id": 9,
-  "description": "Vacation expenses",
-  "duration_days": 10,
-  "start_date": "2024-01-15"
+  "transaction_mode": "continuous",
+  "duration_days": 730,  // 2 years = 730 days
+  "category_id": 5,
+  "description": "New smartphone (amortized over 2 years)",
+  "start_date": "2023-01-15"
 }
 ```
 
-**Response:** `201 Created`
+**Response for all transaction types:** `201 Created`
 ```json
 {
   "message": "Transaction created successfully",
@@ -226,6 +258,7 @@ GET /transactions
       "id": 1,
       "amount": 1000.00,
       "transaction_type": "income",
+      "transaction_mode": "single",
       "category_id": 1,
       "category_name": "Salary",
       "description": "Freelance payment",
@@ -254,6 +287,7 @@ GET /transactions/{transaction_id}
   "id": 1,
   "amount": 1000.00,
   "transaction_type": "income",
+  "transaction_mode": "single",
   "category_id": 1,
   "category_name": "Salary",
   "description": "Freelance payment",
@@ -272,12 +306,14 @@ GET /transactions/{transaction_id}
 PUT /transactions/{transaction_id}
 ```
 
-**Request:** (include only fields to update)
+**Request:** (include fields to update)
 ```json
 {
   "amount": 1200.00,
   "description": "Updated description",
-  "category_id": 2
+  "category_id": 2,
+  "transaction_mode": "continuous",
+  "duration_days": 365
 }
 ```
 
@@ -464,6 +500,20 @@ GET /reports/categories/monthly
   "total_expense": 2000.00
 }
 ```
+
+## Impact on Financial Metrics
+
+### Current Balance
+- Single transactions immediately impact your current balance
+- Recurring income and continuous expenses do not directly affect current balance
+
+### Day Capacity (Daily Budget)
+- Recurring income increases your daily budget by (amount ÷ cycle_days)
+- Continuous expenses decrease your daily budget by (amount ÷ duration_days)
+- Single transactions have no effect on day capacity
+
+### Long-term Balance
+Includes the impact of all transactions, providing a comprehensive view of your financial state.
 
 ## Common HTTP Status Codes
 
